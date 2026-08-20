@@ -3,7 +3,7 @@ import { USER_ROLES } from '../../../enums/user';
 import { UserController } from './user.controller';
 import { UserValidation } from './user.validation';
 import auth from '../../middleware/auth';
-import { s3FileUploadHandler } from '../../middleware/s3FileUploadHandler';
+import { fileUploadHandler } from '../../middleware/fileUploadHandler';
 import validateRequest from '../../middleware/validateRequest';
 const router = express.Router();
 
@@ -19,7 +19,7 @@ router
   .get(anyRole, UserController.getUserProfile)
   .patch(
     anyRole,
-    s3FileUploadHandler.fields([{ name: 'image', maxCount: 1 }]),
+    fileUploadHandler.fields([{ name: 'image', maxCount: 1 }]),
     validateRequest(UserValidation.updateUserZodSchema),
     UserController.updateProfile
   );

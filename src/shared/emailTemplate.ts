@@ -1,7 +1,7 @@
+import config from '../config';
 import { IEmailChangeOtp } from '../types/emailTemplate';
 
-const LOGO_URL =
-  'https://bradmarquis-bucket.s3.us-east-1.amazonaws.com/brand_logo.png';
+const LOGO_URL = `${config.backend_url}/logo.png`;
 
 // Auth OTP (signup, login, password reset) goes out over SMS via smsHelper —
 // this is the one email flow RORA actually uses: an admin changing their email.

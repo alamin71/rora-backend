@@ -4,7 +4,7 @@ import { Secret } from 'jsonwebtoken';
 import catchAsync from '../../../shared/catchAsync';
 import sendResponse from '../../../shared/sendResponse';
 import { AdminService } from './admin.service';
-import { uploadToS3 } from '../../../helpers/s3Helper';
+import { uploadFile } from '../../../helpers/storageHelper';
 import { jwtHelper } from '../../../helpers/jwtHelper';
 import config from '../../../config';
 import AppError from '../../../errors/AppError';
@@ -63,8 +63,7 @@ const updateAdminProfile = catchAsync(async (req: Request, res: Response) => {
   }
 
   if (imageFile) {
-    const s3Url = await uploadToS3(imageFile, 'admin/profiles');
-    payload.image = s3Url;
+    payload.image = await uploadFile(imageFile, 'admin/profiles');
   }
 
   const result = await AdminService.updateAdminProfileInDB(admin, payload);

@@ -6,9 +6,9 @@ import { PolicyPageController } from './policy-page.controller';
 import { PolicyPageValidation } from './policy-page.validation';
 import auth from '../../middleware/auth';
 import validateRequest from '../../middleware/validateRequest';
-import { s3FileUploadHandler } from '../../middleware/s3FileUploadHandler';
+import { fileUploadHandler } from '../../middleware/fileUploadHandler';
 const router = express.Router();
-const adminUpload = s3FileUploadHandler;
+const adminUpload = fileUploadHandler;
 
 // Admin login - returns admin data
 router.post(

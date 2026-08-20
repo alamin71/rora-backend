@@ -45,10 +45,10 @@ export default {
     email: process.env.SUPER_ADMIN_EMAIL,
     password: process.env.SUPER_ADMIN_PASSWORD,
   },
-  aws: {
-    access_key_id: process.env.AWS_ACCESS_KEY_ID,
-    secret_access_key: process.env.AWS_SECRET_ACCESS_KEY,
-    region: process.env.AWS_REGION || 'ap-south-1',
-    s3_bucket_name: process.env.AWS_S3_BUCKET_NAME,
+  firebase: {
+    project_id: process.env.FIREBASE_PROJECT_ID,
+    client_email: process.env.FIREBASE_CLIENT_EMAIL,
+    private_key: process.env.FIREBASE_PRIVATE_KEY,
+    storage_bucket: process.env.FIREBASE_STORAGE_BUCKET,
   },
 };

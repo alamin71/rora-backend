@@ -5,6 +5,7 @@ import config from '../../../config';
 import { USER_ROLES, USER_STATUS } from '../../../enums/user';
 import AppError from '../../../errors/AppError';
 import { IUser, UserModel } from './user.interface';
+import { Wallet } from '../wallet/wallet.model';
 
 const userSchema = new Schema<IUser, UserModel>(
   {
@@ -117,6 +118,17 @@ userSchema.pre('save', async function (next) {
     );
   }
   next();
+});
+
+// Every customer gets a Wallet the moment their account is created — operators
+// and admins don't hold minutes, so this only fires for USER_ROLES.USER
+userSchema.post('save', async function (doc) {
+  if (doc.role === USER_ROLES.USER) {
+    const exists = await Wallet.exists({ userId: doc._id });
+    if (!exists) {
+      await Wallet.create({ userId: doc._id, balanceMinutes: 0 });
+    }
+  }
 });
 
 // Query Middleware

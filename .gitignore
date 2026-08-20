@@ -56,4 +56,4 @@ coverage
 # Database
 *.sqlite
 *.db
-Backend-Template.postman_collection.json
+RORA-Backend.postman_collection.json
