@@ -5,6 +5,7 @@ import { AdminRoutes } from '../app/modules/admin/admin.route';
 import { WalletRouter } from '../app/modules/wallet/wallet.route';
 import { DestinationRouter } from '../app/modules/destination/destination.route';
 import { OperatorRouter } from '../app/modules/operator/operator.route';
+import { NotificationRouter } from '../app/modules/notification/notification.route';
 
 const router = express.Router();
 const routes = [
@@ -31,6 +32,10 @@ const routes = [
   {
     path: '/operator',
     route: OperatorRouter,
+  },
+  {
+    path: '/notifications',
+    route: NotificationRouter,
   },
 ];
 

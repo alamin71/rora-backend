@@ -3,7 +3,7 @@ import catchAsync from '../../../shared/catchAsync';
 import sendResponse from '../../../shared/sendResponse';
 import AppError from '../../../errors/AppError';
 import config from '../../../config';
-import { uploadFile } from '../../../helpers/storageHelper';
+import { uploadToS3 } from '../../../helpers/s3Helper';
 import { OperatorService } from './operator.service';
 import { OperatorValidation } from './operator.validation';
 
@@ -47,7 +47,7 @@ const operatorSignup = catchAsync(async (req, res) => {
     | undefined;
   const selfieFile = files?.selfie?.[0];
   const selfieUrl = selfieFile
-    ? await uploadFile(selfieFile, 'operator/selfies')
+    ? await uploadToS3(selfieFile, 'operator/selfies')
     : undefined;
 
   const result = await OperatorService.operatorSignup({

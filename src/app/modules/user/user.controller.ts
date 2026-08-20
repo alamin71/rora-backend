@@ -2,7 +2,7 @@ import { StatusCodes } from 'http-status-codes';
 import catchAsync from '../../../shared/catchAsync';
 import sendResponse from '../../../shared/sendResponse';
 import { UserService } from './user.service';
-import { uploadFile } from '../../../helpers/storageHelper';
+import { uploadToS3 } from '../../../helpers/s3Helper';
 import AppError from '../../../errors/AppError';
 
 const getUserProfile = catchAsync(async (req, res) => {
@@ -50,7 +50,7 @@ const updateProfile = catchAsync(async (req, res) => {
   }
 
   if (imageFile) {
-    payload.image = await uploadFile(imageFile, 'user/profiles');
+    payload.image = await uploadToS3(imageFile, 'user/profiles');
   }
 
   if ('role' in payload) {

@@ -12,6 +12,11 @@ export type IUser = {
   status: USER_STATUS;
   suspensionReason?: string;
   verified: boolean;
+  notificationPrefs: {
+    callUpdates: boolean;
+    lowBalanceAlerts: boolean;
+    rechargeConfirmations: boolean;
+  };
   authentication?: {
     isResetPassword: boolean;
     oneTimeCode: number | null;

@@ -58,6 +58,14 @@ const userSchema = new Schema<IUser, UserModel>(
     suspensionReason: {
       type: String,
     },
+    notificationPrefs: {
+      type: {
+        callUpdates: { type: Boolean, default: true },
+        lowBalanceAlerts: { type: Boolean, default: true },
+        rechargeConfirmations: { type: Boolean, default: true },
+      },
+      default: () => ({}),
+    },
     authentication: {
       type: {
         isResetPassword: {
