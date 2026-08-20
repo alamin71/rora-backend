@@ -4,6 +4,7 @@ import { AuthRouter } from '../app/modules/auth/auth.route';
 import { AdminRoutes } from '../app/modules/admin/admin.route';
 import { WalletRouter } from '../app/modules/wallet/wallet.route';
 import { DestinationRouter } from '../app/modules/destination/destination.route';
+import { OperatorRouter } from '../app/modules/operator/operator.route';
 
 const router = express.Router();
 const routes = [
@@ -26,6 +27,10 @@ const routes = [
   {
     path: '/destinations',
     route: DestinationRouter,
+  },
+  {
+    path: '/operator',
+    route: OperatorRouter,
   },
 ];
 

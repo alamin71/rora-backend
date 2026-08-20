@@ -10,7 +10,7 @@ import {
   ILoginData,
   IVerifyOtp,
 } from '../../../types/auth';
-import { USER_STATUS } from '../../../enums/user';
+import { USER_ROLES, USER_STATUS } from '../../../enums/user';
 import { ResetToken } from '../resetToken/resetToken.model';
 import { User } from '../user/user.model';
 import AppError from '../../../errors/AppError';
@@ -241,11 +241,20 @@ const verifyOtpToDB = async (payload: IVerifyOtp) => {
   let user;
 
   if (!isExistUser.verified) {
+    // Customers go straight to active. Operators (and any other non-customer
+    // role) keep whatever status they were created with — e.g. an operator
+    // stays pending_verification until an admin approves identity/bank
+    // details, even though their phone is now confirmed.
+    const nextStatus =
+      isExistUser.role === USER_ROLES.USER
+        ? USER_STATUS.ACTIVE
+        : isExistUser.status;
+
     await User.findOneAndUpdate(
       { _id: isExistUser._id },
       {
         verified: true,
-        status: USER_STATUS.ACTIVE,
+        status: nextStatus,
         authentication: { oneTimeCode: null, expireAt: null },
       }
     );
