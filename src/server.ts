@@ -97,7 +97,7 @@ export async function startServer() {
         credentials: true,
       },
     });
-    socketHelper.socket(socketServer);
+    await socketHelper.socket(socketServer);
     logger.info(
       colors.yellow(
         `♻️  Socket attached to HTTP server on http://${ipAddress}:${currentHttpPort}`

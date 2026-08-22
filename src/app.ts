@@ -6,11 +6,8 @@ import globalErrorHandler from "./globalErrorHandler/globalErrorHandler";
 import { notFound } from "./app/middleware/notFound";
 import { welcome } from "../src/utils/welcome";
 import config from "./config";
-import path from "path";
 const app: Application = express();
 
-app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "views"));
 //morgan
 app.use(Morgan.successHandler);
 app.use(Morgan.errorHandler);

@@ -21,9 +21,6 @@ export type IUser = {
     isResetPassword: boolean;
     oneTimeCode: number | null;
     expireAt: Date | null;
-    pendingEmail?: string;
-    emailChangeOtp?: number | null;
-    emailChangeExpireAt?: Date | null;
   };
 };
 

@@ -11,9 +11,6 @@ import {
   ILoginData,
   IVerifyOtp,
 } from '../../../types/auth';
-import { emailHelper } from '../../../helpers/emailHelper';
-import { emailTemplate } from '../../../shared/emailTemplate';
-import generateOTP from '../../../utils/generateOTP';
 
 const ensureAdminUserByPhone = async (phone: string) => {
   const user = await User.findOne({ phone });
@@ -133,116 +130,6 @@ const removeProfilePhotoFromDB = async (admin: JwtPayload) => {
   return updatedAdmin;
 };
 
-// This is a separate, email-specific OTP flow for admins who want to change
-// their contact email — distinct from the phone-based login/reset OTP above
-const requestEmailChangeToDB = async (admin: JwtPayload, newEmail: string) => {
-  const normalizedNewEmail = newEmail.trim().toLowerCase();
-
-  const adminData = await User.findById(admin.id);
-  if (!adminData) {
-    throw new AppError(StatusCodes.NOT_FOUND, 'Admin not found');
-  }
-
-  const existingUser = await User.findOne({ email: normalizedNewEmail });
-  if (existingUser && existingUser._id.toString() !== admin.id) {
-    throw new AppError(StatusCodes.BAD_REQUEST, 'Email already in use');
-  }
-
-  if (normalizedNewEmail === adminData.email) {
-    throw new AppError(
-      StatusCodes.BAD_REQUEST,
-      'New email cannot be the same as current email'
-    );
-  }
-
-  const otp = generateOTP(6);
-
-  const emailChangeTemplate = emailTemplate.emailChangeOtp({
-    name: adminData.name,
-    otp,
-    newEmail: normalizedNewEmail,
-  });
-  await emailHelper.sendEmail(emailChangeTemplate);
-
-  const authentication = {
-    ...adminData.authentication,
-    pendingEmail: normalizedNewEmail,
-    emailChangeOtp: otp,
-    emailChangeExpireAt: new Date(Date.now() + 5 * 60000),
-  };
-
-  await User.findByIdAndUpdate(admin.id, { authentication });
-
-  return {
-    otp,
-    message: `OTP sent to ${normalizedNewEmail}`,
-  };
-};
-
-const verifyEmailChangeOtpToDB = async (admin: JwtPayload, otp: number) => {
-  const adminData = await User.findById(admin.id).select('+authentication');
-  if (!adminData) {
-    throw new AppError(StatusCodes.NOT_FOUND, 'Admin not found');
-  }
-
-  const authentication = adminData.authentication;
-
-  if (!authentication?.pendingEmail) {
-    throw new AppError(
-      StatusCodes.BAD_REQUEST,
-      'No email change request found'
-    );
-  }
-
-  if (!otp) {
-    throw new AppError(StatusCodes.BAD_REQUEST, 'OTP is required');
-  }
-
-  const dbOtp = String(authentication?.emailChangeOtp);
-  const requestOtp = String(otp);
-
-  if (dbOtp !== requestOtp) {
-    throw new AppError(StatusCodes.BAD_REQUEST, 'Invalid OTP');
-  }
-
-  const expireAt = authentication?.emailChangeExpireAt;
-  if (!expireAt) {
-    throw new AppError(
-      StatusCodes.BAD_REQUEST,
-      'OTP already expired, please request again'
-    );
-  }
-
-  const date = new Date();
-  if (date > expireAt) {
-    throw new AppError(
-      StatusCodes.BAD_REQUEST,
-      'OTP already expired, please request again'
-    );
-  }
-
-  const updatedAdmin = await User.findByIdAndUpdate(
-    admin.id,
-    {
-      email: authentication.pendingEmail,
-      authentication: {
-        isResetPassword: false,
-        oneTimeCode: null,
-        expireAt: null,
-        pendingEmail: '',
-        emailChangeOtp: null,
-        emailChangeExpireAt: null,
-      },
-    },
-    { new: true }
-  );
-
-  return {
-    email: updatedAdmin?.email,
-    message: 'OTP verified and email changed successfully',
-  };
-};
-
 export const AdminService = {
   deleteAdminFromDB,
   getAdminFromDB,
@@ -255,6 +142,4 @@ export const AdminService = {
   adminResendOtpToDB,
   changePasswordForAdminInDB,
   removeProfilePhotoFromDB,
-  requestEmailChangeToDB,
-  verifyEmailChangeOtpToDB,
 };

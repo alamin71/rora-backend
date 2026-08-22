@@ -82,20 +82,6 @@ router.delete(
   auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
   AdminController.removeProfilePhoto
 );
-// Email Change Endpoints
-router.post(
-  '/change-email/request',
-  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
-  validateRequest(AdminValidation.requestEmailChangeZodSchema),
-  AdminController.requestEmailChange
-);
-
-router.post(
-  '/change-email/verify-otp',
-  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
-  validateRequest(AdminValidation.verifyEmailChangeOtpZodSchema),
-  AdminController.verifyEmailChangeOtp
-);
 //=============================================
 // Policy Pages
 //=============================================

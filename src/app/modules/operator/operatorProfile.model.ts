@@ -47,6 +47,10 @@ const operatorProfileSchema = new Schema<
       type: Number,
       default: 0,
     },
+    acceptedCount: {
+      type: Number,
+      default: 0,
+    },
     acceptanceRatePercent: {
       type: Number,
       default: 0,

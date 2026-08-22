@@ -11,6 +11,7 @@ export type IOperatorProfile = {
   ratingAvg: number;
   totalCalls: number;
   totalEarnings: number;
+  acceptedCount: number;
   acceptanceRatePercent: number;
   avgResponseTimeSeconds: number;
   missedRequestsCount: number;

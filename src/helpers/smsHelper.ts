@@ -1,30 +1,33 @@
 import config from '../config';
 import { errorLogger, logger } from '../shared/logger';
 
-const UNIFONIC_SEND_URL = 'https://el.cloud.unifonic.com/rest/SMS/messages';
-
 const sendSms = async (to: string, body: string): Promise<void> => {
   try {
+    const { accountSid, authToken, phoneNumber } = config.twilio;
+    if (!accountSid || !authToken || !phoneNumber) {
+      logger.warn('Twilio is not configured — SMS not sent');
+      return;
+    }
+
+    const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
     const params = new URLSearchParams({
-      AppSid: config.unifonic.appSid,
-      SenderID: config.unifonic.senderId,
+      To: to,
+      From: phoneNumber,
       Body: body,
-      Recipient: to,
-      responseType: 'JSON',
     });
 
-    const response = await fetch(UNIFONIC_SEND_URL, {
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
-        Accept: 'application/json',
+        Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString('base64')}`,
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: params,
     });
 
     const result = await response.json();
-    if (!response.ok || result?.success === false) {
-      throw new Error(result?.message || 'Unifonic SMS request failed');
+    if (!response.ok) {
+      throw new Error(result?.message || 'Twilio SMS request failed');
     }
 
     logger.info('SMS sent successfully', to);

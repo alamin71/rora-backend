@@ -6,6 +6,10 @@ import { WalletRouter } from '../app/modules/wallet/wallet.route';
 import { DestinationRouter } from '../app/modules/destination/destination.route';
 import { OperatorRouter } from '../app/modules/operator/operator.route';
 import { NotificationRouter } from '../app/modules/notification/notification.route';
+import { CallRouter } from '../app/modules/call/call.route';
+import { PayoutRouter } from '../app/modules/payout/payout.route';
+import { DisputeRouter } from '../app/modules/dispute/dispute.route';
+import { AnalyticsRouter } from '../app/modules/analytics/analytics.route';
 
 const router = express.Router();
 const routes = [
@@ -36,6 +40,22 @@ const routes = [
   {
     path: '/notifications',
     route: NotificationRouter,
+  },
+  {
+    path: '/calls',
+    route: CallRouter,
+  },
+  {
+    path: '/payout',
+    route: PayoutRouter,
+  },
+  {
+    path: '/disputes',
+    route: DisputeRouter,
+  },
+  {
+    path: '/admin',
+    route: AnalyticsRouter,
   },
 ];
 

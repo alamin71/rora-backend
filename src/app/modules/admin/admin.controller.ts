@@ -196,34 +196,6 @@ const removeProfilePhoto = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// Request Email Change
-const requestEmailChange = catchAsync(async (req: Request, res: Response) => {
-  const admin = req.user;
-  const { newEmail } = req.body;
-  const result = await AdminService.requestEmailChangeToDB(admin, newEmail);
-
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: result.message,
-    data: {},
-  });
-});
-
-// Verify Email Change OTP
-const verifyEmailChangeOtp = catchAsync(async (req: Request, res: Response) => {
-  const admin = req.user;
-  const { otp } = req.body;
-  const result = await AdminService.verifyEmailChangeOtpToDB(admin, otp);
-
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: result.message,
-    data: result,
-  });
-});
-
 export const AdminController = {
   deleteAdmin,
   getAdmin,
@@ -236,6 +208,4 @@ export const AdminController = {
   adminResendOtp,
   changePassword,
   removeProfilePhoto,
-  requestEmailChange,
-  verifyEmailChangeOtp,
 };

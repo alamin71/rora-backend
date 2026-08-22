@@ -14,6 +14,7 @@ export default {
   bcrypt_salt_rounds: process.env.BCRYPT_SALT_ROUNDS,
   socket_port: process.env.SOCKET_PORT,
   allowed_origins: process.env.ALLOWED_ORIGINS,
+  redis_url: process.env.REDIS_URL,
   jwt: {
     jwt_secret: process.env.JWT_SECRET,
     jwt_expire_in: process.env.JWT_EXPIRE_IN,
@@ -21,17 +22,10 @@ export default {
     jwt_refresh_expire_in: process.env.JWT_REFRESH_EXPIRE_IN,
   },
 
-  email: {
-    email_header: process.env.EMAIL_HEADER_NAME,
-    from: process.env.EMAIL_FROM,
-    user: process.env.EMAIL_USER,
-    port: process.env.EMAIL_PORT,
-    host: process.env.EMAIL_HOST,
-    pass: process.env.EMAIL_PASS,
-  },
-  unifonic: {
-    appSid: process.env.UNIFONIC_APP_SID || '',
-    senderId: process.env.UNIFONIC_SENDER_ID || '',
+  twilio: {
+    accountSid: process.env.TWILIO_ACCOUNT_SID || '',
+    authToken: process.env.TWILIO_AUTH_TOKEN || '',
+    phoneNumber: process.env.TWILIO_PHONE_NUMBER || '',
   },
   stripe: {
     stripe_secret_key: process.env.STRIPE_SECRET_KEY,
