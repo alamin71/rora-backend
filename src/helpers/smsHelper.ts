@@ -37,14 +37,14 @@ const sendSms = async (to: string, body: string): Promise<void> => {
 };
 
 const sendOtpSms = async (to: string, otp: string): Promise<void> => {
-  const { accountSid, authToken, phoneNumber } = config.twilio;
-  if (!accountSid || !authToken || !phoneNumber) {
-    // Twilio isn't configured yet — print the OTP so it can be tested manually.
-    // Remove this once real Twilio credentials are added to .env.
-    logger.info(`[DEV OTP] ${to} -> ${otp}`);
-    return;
-  }
   await sendSms(to, `Your RORA verification code is ${otp}. It expires in 5 minutes.`);
 };
 
-export const smsHelper = { sendSms, sendOtpSms };
+// Twilio isn't configured yet — until real credentials are added, callers can
+// use this to echo the OTP back in the API response for manual testing.
+const isConfigured = (): boolean => {
+  const { accountSid, authToken, phoneNumber } = config.twilio;
+  return Boolean(accountSid && authToken && phoneNumber);
+};
+
+export const smsHelper = { sendSms, sendOtpSms, isConfigured };

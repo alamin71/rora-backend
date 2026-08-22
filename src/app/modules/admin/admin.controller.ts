@@ -6,6 +6,7 @@ import sendResponse from '../../../shared/sendResponse';
 import { AdminService } from './admin.service';
 import { uploadToS3 } from '../../../helpers/s3Helper';
 import { jwtHelper } from '../../../helpers/jwtHelper';
+import { smsHelper } from '../../../helpers/smsHelper';
 import config from '../../../config';
 import AppError from '../../../errors/AppError';
 
@@ -95,7 +96,9 @@ const adminForgetPassword = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: 'OTP sent to admin phone',
+    message: smsHelper.isConfigured()
+      ? 'OTP sent to admin phone'
+      : `OTP sent to admin phone. [DEV: ${result.otp}]`,
     data: { otpToken: result.otpToken },
   });
 });
@@ -159,7 +162,9 @@ const adminResendOtp = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: 'Admin OTP resent successfully',
+    message: smsHelper.isConfigured()
+      ? 'Admin OTP resent successfully'
+      : `Admin OTP resent successfully. [DEV: ${result.otp}]`,
     data: { otpToken: result.otpToken },
   });
 });

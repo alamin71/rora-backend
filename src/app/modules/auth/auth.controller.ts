@@ -7,6 +7,7 @@ import { AuthService } from './auth.service';
 import config from '../../../config';
 import AppError from '../../../errors/AppError';
 import { jwtHelper } from '../../../helpers/jwtHelper';
+import { smsHelper } from '../../../helpers/smsHelper';
 
 const extractPhoneFromOtpToken = (req: Request) => {
   const otpToken =
@@ -43,8 +44,9 @@ const signupUser = catchAsync(async (req, res) => {
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
-    message:
-      'Signup OTP sent to your phone. Please verify to activate your account.',
+    message: smsHelper.isConfigured()
+      ? 'Signup OTP sent to your phone. Please verify to activate your account.'
+      : `Signup OTP sent. [DEV: ${result.otp}]`,
     data: { signupToken: result.signupToken },
   });
 });
@@ -71,7 +73,9 @@ const forgetPassword = catchAsync(async (req, res) => {
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
-    message: 'We have sent a one-time passcode (OTP) to your phone.',
+    message: smsHelper.isConfigured()
+      ? 'We have sent a one-time passcode (OTP) to your phone.'
+      : `OTP sent. [DEV: ${result.otp}]`,
     data: { otpToken: result.otpToken },
   });
 });
@@ -143,7 +147,9 @@ const resendOtp = catchAsync(async (req, res) => {
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
-    message: 'OTP sent successfully again',
+    message: smsHelper.isConfigured()
+      ? 'OTP sent successfully again'
+      : `OTP resent successfully. [DEV: ${result.otp}]`,
     data: { otpToken: result.otpToken },
   });
 });

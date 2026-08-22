@@ -3,6 +3,7 @@ import catchAsync from '../../../shared/catchAsync';
 import sendResponse from '../../../shared/sendResponse';
 import AppError from '../../../errors/AppError';
 import { uploadToS3 } from '../../../helpers/s3Helper';
+import { smsHelper } from '../../../helpers/smsHelper';
 import { OperatorService } from './operator.service';
 import { OperatorValidation } from './operator.validation';
 
@@ -57,8 +58,9 @@ const operatorSignup = catchAsync(async (req, res) => {
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
-    message:
-      'Signup OTP sent to your phone. Please verify to activate your account.',
+    message: smsHelper.isConfigured()
+      ? 'Signup OTP sent to your phone. Please verify to activate your account.'
+      : `Signup OTP sent. [DEV: ${result.otp}]`,
     data: { signupToken: result.signupToken },
   });
 });
