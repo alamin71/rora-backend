@@ -95,10 +95,7 @@ const adminForgetPassword = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message:
-      config.node_env === 'production'
-        ? 'OTP sent to admin phone'
-        : `OTP sent to admin phone. [DEV: ${result.otp}]`,
+    message: 'OTP sent to admin phone',
     data: { otpToken: result.otpToken },
   });
 });
@@ -162,10 +159,7 @@ const adminResendOtp = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message:
-      config.node_env === 'production'
-        ? 'Admin OTP resent successfully'
-        : `Admin OTP resent successfully. [DEV: ${result.otp}]`,
+    message: 'Admin OTP resent successfully',
     data: { otpToken: result.otpToken },
   });
 });

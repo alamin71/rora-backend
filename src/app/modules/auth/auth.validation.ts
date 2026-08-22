@@ -8,13 +8,21 @@ const otpBodySchema = z.object({
 });
 
 const createSignupZodSchema = z.object({
-  body: z.object({
-    name: z.string().nonempty({ message: 'Name is required' }),
-    phone: z.string().nonempty({ message: 'Phone number is required' }),
-    password: z
-      .string()
-      .min(8, { message: 'Password must be at least 8 characters' }),
-  }),
+  body: z
+    .object({
+      name: z.string().nonempty({ message: 'Name is required' }),
+      phone: z.string().nonempty({ message: 'Phone number is required' }),
+      password: z
+        .string()
+        .min(8, { message: 'Password must be at least 8 characters' }),
+      confirmPassword: z
+        .string()
+        .nonempty({ message: 'Confirm Password is required' }),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: "Password and Confirm password doesn't match",
+      path: ['confirmPassword'],
+    }),
 });
 
 const createLoginZodSchema = z.object({

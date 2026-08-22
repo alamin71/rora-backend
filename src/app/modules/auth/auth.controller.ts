@@ -44,9 +44,7 @@ const signupUser = catchAsync(async (req, res) => {
     success: true,
     statusCode: StatusCodes.OK,
     message:
-      config.node_env === 'production'
-        ? 'Signup OTP sent to your phone. Please verify to activate your account.'
-        : `Signup OTP sent. [DEV: ${result.otp}]`,
+      'Signup OTP sent to your phone. Please verify to activate your account.',
     data: { signupToken: result.signupToken },
   });
 });
@@ -73,10 +71,7 @@ const forgetPassword = catchAsync(async (req, res) => {
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
-    message:
-      config.node_env === 'production'
-        ? 'We have sent a one-time passcode (OTP) to your phone.'
-        : `OTP sent. [DEV: ${result.otp}]`,
+    message: 'We have sent a one-time passcode (OTP) to your phone.',
     data: { otpToken: result.otpToken },
   });
 });
@@ -148,10 +143,7 @@ const resendOtp = catchAsync(async (req, res) => {
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
-    message:
-      config.node_env === 'production'
-        ? 'OTP sent successfully again'
-        : `OTP resent successfully. [DEV: ${result.otp}]`,
+    message: 'OTP sent successfully again',
     data: { otpToken: result.otpToken },
   });
 });
