@@ -8,6 +8,7 @@ import config from '../../../config';
 import AppError from '../../../errors/AppError';
 import { jwtHelper } from '../../../helpers/jwtHelper';
 import { smsHelper } from '../../../helpers/smsHelper';
+import normalizePhone from '../../../utils/normalizePhone';
 
 const extractPhoneFromOtpToken = (req: Request) => {
   const otpToken =
@@ -38,7 +39,8 @@ const extractPhoneFromOtpToken = (req: Request) => {
 };
 
 const signupUser = catchAsync(async (req, res) => {
-  const payload = req.body;
+  const { countryCode, phone, ...rest } = req.body;
+  const payload = { ...rest, phone: normalizePhone(countryCode, phone) };
   const result = await AuthService.signupUserToDB(payload);
 
   sendResponse(res, {
@@ -52,7 +54,8 @@ const signupUser = catchAsync(async (req, res) => {
 });
 
 const loginUser = catchAsync(async (req, res) => {
-  const { ...loginData } = req.body;
+  const { countryCode, phone, ...rest } = req.body;
+  const loginData = { ...rest, phone: normalizePhone(countryCode, phone) };
   const result = await AuthService.loginUserFromDB(loginData);
 
   sendResponse(res, {
@@ -67,8 +70,10 @@ const loginUser = catchAsync(async (req, res) => {
 });
 
 const forgetPassword = catchAsync(async (req, res) => {
-  const { phone } = req.body;
-  const result = await AuthService.forgetPasswordToDB(phone);
+  const { countryCode, phone } = req.body;
+  const result = await AuthService.forgetPasswordToDB(
+    normalizePhone(countryCode, phone)
+  );
 
   sendResponse(res, {
     success: true,
@@ -131,7 +136,7 @@ const verifyOtp = catchAsync(async (req, res) => {
 // resend Otp
 const resendOtp = catchAsync(async (req, res) => {
   const signupToken = req.headers['signup-token'] as string;
-  const { phone } = req.body;
+  const { countryCode, phone } = req.body;
 
   if (!signupToken && !phone) {
     throw new AppError(
@@ -142,7 +147,7 @@ const resendOtp = catchAsync(async (req, res) => {
 
   const result = signupToken
     ? await AuthService.resendOtpFromDb(signupToken, true)
-    : await AuthService.resendOtpFromDb(phone, false);
+    : await AuthService.resendOtpFromDb(normalizePhone(countryCode, phone), false);
 
   sendResponse(res, {
     success: true,

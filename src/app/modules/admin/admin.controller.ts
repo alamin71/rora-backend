@@ -8,6 +8,7 @@ import { uploadToS3 } from '../../../helpers/s3Helper';
 import { jwtHelper } from '../../../helpers/jwtHelper';
 import { smsHelper } from '../../../helpers/smsHelper';
 import config from '../../../config';
+import normalizePhone from '../../../utils/normalizePhone';
 import AppError from '../../../errors/AppError';
 
 const deleteAdmin = catchAsync(async (req: Request, res: Response) => {
@@ -78,7 +79,8 @@ const updateAdminProfile = catchAsync(async (req: Request, res: Response) => {
 });
 
 const adminLogin = catchAsync(async (req: Request, res: Response) => {
-  const payload = req.body;
+  const { countryCode, phone, ...rest } = req.body;
+  const payload = { ...rest, phone: normalizePhone(countryCode, phone) };
   const result = await AdminService.adminLoginToDB(payload);
 
   sendResponse(res, {
@@ -90,8 +92,10 @@ const adminLogin = catchAsync(async (req: Request, res: Response) => {
 });
 
 const adminForgetPassword = catchAsync(async (req: Request, res: Response) => {
-  const { phone } = req.body;
-  const result = await AdminService.adminForgetPasswordToDB(phone);
+  const { countryCode, phone } = req.body;
+  const result = await AdminService.adminForgetPasswordToDB(
+    normalizePhone(countryCode, phone)
+  );
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -156,8 +160,10 @@ const adminResetPassword = catchAsync(async (req: Request, res: Response) => {
 });
 
 const adminResendOtp = catchAsync(async (req: Request, res: Response) => {
-  const { phone } = req.body;
-  const result = await AdminService.adminResendOtpToDB(phone);
+  const { countryCode, phone } = req.body;
+  const result = await AdminService.adminResendOtpToDB(
+    normalizePhone(countryCode, phone)
+  );
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,

@@ -11,6 +11,7 @@ const createSignupZodSchema = z.object({
   body: z
     .object({
       name: z.string().nonempty({ message: 'Name is required' }),
+      countryCode: z.string().nonempty({ message: 'Country code is required' }),
       phone: z.string().nonempty({ message: 'Phone number is required' }),
       password: z
         .string()
@@ -27,6 +28,7 @@ const createSignupZodSchema = z.object({
 
 const createLoginZodSchema = z.object({
   body: z.object({
+    countryCode: z.string().nonempty({ message: 'Country code is required' }),
     phone: z.string().nonempty({ message: 'Phone number is required' }),
     password: z.string().nonempty({ message: 'Password is required' }),
   }),
@@ -34,14 +36,21 @@ const createLoginZodSchema = z.object({
 
 const createForgetPasswordZodSchema = z.object({
   body: z.object({
+    countryCode: z.string().nonempty({ message: 'Country code is required' }),
     phone: z.string().nonempty({ message: 'Phone number is required' }),
   }),
 });
 
 const createResendOtpZodSchema = z.object({
-  body: z.object({
-    phone: z.string().nonempty({ message: 'Phone number is required' }).optional(),
-  }),
+  body: z
+    .object({
+      countryCode: z.string().optional(),
+      phone: z.string().optional(),
+    })
+    .refine((data) => Boolean(data.countryCode) === Boolean(data.phone), {
+      message: 'countryCode and phone must be provided together',
+      path: ['phone'],
+    }),
 });
 
 const createResetPasswordZodSchema = z.object({

@@ -4,11 +4,14 @@ import sendResponse from '../../../shared/sendResponse';
 import AppError from '../../../errors/AppError';
 import { uploadToS3 } from '../../../helpers/s3Helper';
 import { smsHelper } from '../../../helpers/smsHelper';
+import normalizePhone from '../../../utils/normalizePhone';
 import { OperatorService } from './operator.service';
 import { OperatorValidation } from './operator.validation';
 
 const inviteOperator = catchAsync(async (req, res) => {
-  const result = await OperatorService.inviteOperator(req.body, req.user.id);
+  const { countryCode, phone, ...rest } = req.body;
+  const payload = { ...rest, phone: normalizePhone(countryCode, phone) };
+  const result = await OperatorService.inviteOperator(payload, req.user.id);
 
   sendResponse(res, {
     success: true,
@@ -40,7 +43,8 @@ const operatorSignup = catchAsync(async (req, res) => {
     );
   }
 
-  const parsed = OperatorValidation.operatorSignupZodSchema.parse(payload);
+  const { countryCode, phone, ...parsed } =
+    OperatorValidation.operatorSignupZodSchema.parse(payload);
 
   const files = req.files as
     | { [fieldname: string]: Express.Multer.File[] }
@@ -52,6 +56,7 @@ const operatorSignup = catchAsync(async (req, res) => {
 
   const result = await OperatorService.operatorSignup({
     ...parsed,
+    phone: normalizePhone(countryCode, phone),
     selfieUrl,
   });
 
