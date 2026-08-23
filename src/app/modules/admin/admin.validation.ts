@@ -2,7 +2,6 @@ import { z } from 'zod';
 
 const createLoginZodSchema = z.object({
   body: z.object({
-    countryCode: z.string().nonempty({ message: 'Country code is required' }),
     phone: z.string().nonempty({ message: 'Phone number is required' }),
     password: z.string().nonempty({ message: 'Password is required' }),
   }),
@@ -10,14 +9,12 @@ const createLoginZodSchema = z.object({
 
 const createForgetPasswordZodSchema = z.object({
   body: z.object({
-    countryCode: z.string().nonempty({ message: 'Country code is required' }),
     phone: z.string().nonempty({ message: 'Phone number is required' }),
   }),
 });
 
 const createResendOtpZodSchema = z.object({
   body: z.object({
-    countryCode: z.string().nonempty({ message: 'Country code is required' }),
     phone: z.string().nonempty({ message: 'Phone number is required' }),
   }),
 });
