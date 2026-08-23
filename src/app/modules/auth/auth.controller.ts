@@ -9,6 +9,14 @@ import AppError from '../../../errors/AppError';
 import { jwtHelper } from '../../../helpers/jwtHelper';
 import { smsHelper } from '../../../helpers/smsHelper';
 import normalizePhone from '../../../utils/normalizePhone';
+import { USER_ROLES } from '../../../enums/user';
+
+const ROLE_LABELS: Record<string, string> = {
+  [USER_ROLES.USER]: 'User',
+  [USER_ROLES.OPERATOR]: 'Operator',
+  [USER_ROLES.ADMIN]: 'Admin',
+  [USER_ROLES.SUPER_ADMIN]: 'Super admin',
+};
 
 const extractPhoneFromOtpToken = (req: Request) => {
   const otpToken =
@@ -61,10 +69,11 @@ const loginUser = catchAsync(async (req, res) => {
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
-    message: 'User logged in successfully.',
+    message: `${ROLE_LABELS[result.role] ?? 'User'} logged in successfully.`,
     data: {
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
+      role: result.role,
     },
   });
 });

@@ -89,7 +89,7 @@ const loginUserFromDB = async (payload: ILoginData) => {
     config.jwt.jwt_refresh_expire_in as string
   );
 
-  return { accessToken, refreshToken };
+  return { accessToken, refreshToken, role: isExistUser.role };
 };
 
 // signup — customer only; operators come through the invitation flow (see the
