@@ -67,7 +67,7 @@ const auth =
         if (roles.length && !roles.includes(verifyUser?.role)) {
           throw new AppError(
             StatusCodes.FORBIDDEN,
-            "You don't have permission to access this api !!"
+            `Access denied: this endpoint requires role ${roles.join(' or ')}, but your account role is ${verifyUser?.role}.`
           );
         }
 
