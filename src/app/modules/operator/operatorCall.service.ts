@@ -133,29 +133,13 @@ const transitionCall = async (
   return call;
 };
 
-const dialCustomer = (operatorId: string, callId: string) =>
-  transitionCall(
-    operatorId,
-    callId,
-    [CALL_STATUS.ASSIGNED],
-    CALL_STATUS.DIALING_CUSTOMER,
-    'customerDialedAt'
-  );
-
-const customerConnected = (operatorId: string, callId: string) =>
-  transitionCall(
-    operatorId,
-    callId,
-    [CALL_STATUS.DIALING_CUSTOMER],
-    CALL_STATUS.CUSTOMER_CONNECTED,
-    'customerConnectedAt'
-  );
-
+// Destination (Eritrea/Sudan) is dialed first, then the customer (Egypt) —
+// per the operator app's stage order.
 const dialDestination = (operatorId: string, callId: string) =>
   transitionCall(
     operatorId,
     callId,
-    [CALL_STATUS.CUSTOMER_CONNECTED],
+    [CALL_STATUS.ASSIGNED],
     CALL_STATUS.DIALING_DESTINATION,
     'destinationDialedAt'
   );
@@ -169,12 +153,30 @@ const destinationConnected = (operatorId: string, callId: string) =>
     'destinationConnectedAt'
   );
 
+const dialCustomer = (operatorId: string, callId: string) =>
+  transitionCall(
+    operatorId,
+    callId,
+    [CALL_STATUS.DESTINATION_CONNECTED],
+    CALL_STATUS.DIALING_CUSTOMER,
+    'customerDialedAt'
+  );
+
+const customerConnected = (operatorId: string, callId: string) =>
+  transitionCall(
+    operatorId,
+    callId,
+    [CALL_STATUS.DIALING_CUSTOMER],
+    CALL_STATUS.CUSTOMER_CONNECTED,
+    'customerConnectedAt'
+  );
+
 // Merging the two live legs — this is where the billing clock starts
 const startConference = (operatorId: string, callId: string) =>
   transitionCall(
     operatorId,
     callId,
-    [CALL_STATUS.DESTINATION_CONNECTED],
+    [CALL_STATUS.CUSTOMER_CONNECTED],
     CALL_STATUS.CONFERENCING,
     'conferenceStartedAt'
   );
@@ -360,10 +362,10 @@ export const OperatorCallService = {
   getQueue,
   acceptCall,
   skipCall,
-  dialCustomer,
-  customerConnected,
   dialDestination,
   destinationConnected,
+  dialCustomer,
+  customerConnected,
   startConference,
   endCall,
   markFailed,
