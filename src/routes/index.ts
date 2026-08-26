@@ -2,6 +2,7 @@ import express from 'express';
 import { UserRouter } from '../app/modules/user/user.route';
 import { AuthRouter } from '../app/modules/auth/auth.route';
 import { AdminRoutes } from '../app/modules/admin/admin.route';
+import { PolicyPagePublicRouter } from '../app/modules/admin/policy-page.public.route';
 import { WalletRouter } from '../app/modules/wallet/wallet.route';
 import { DestinationRouter } from '../app/modules/destination/destination.route';
 import { OperatorRouter } from '../app/modules/operator/operator.route';
@@ -24,6 +25,10 @@ const routes = [
   {
     path: '/admin',
     route: AdminRoutes,
+  },
+  {
+    path: '/policy',
+    route: PolicyPagePublicRouter,
   },
   {
     path: '/wallet',
