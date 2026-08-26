@@ -96,7 +96,19 @@ const cancelCall = async (customerId: string, callId: string) => {
   if (!call) {
     throw new AppError(StatusCodes.NOT_FOUND, 'Call not found');
   }
-  if (![CALL_STATUS.REQUESTED, CALL_STATUS.ASSIGNED].includes(call.status)) {
+  // Cancellable any time before the two legs are actually merged — after that,
+  // a real 3-way call is live on the operator's phone and only they can end it
+  // (End Call / Mark Failed). This also gives a customer a way out if the
+  // operator goes silent mid-dial instead of getting stuck forever.
+  const CANCELLABLE_STATUSES = [
+    CALL_STATUS.REQUESTED,
+    CALL_STATUS.ASSIGNED,
+    CALL_STATUS.DIALING_CUSTOMER,
+    CALL_STATUS.CUSTOMER_CONNECTED,
+    CALL_STATUS.DIALING_DESTINATION,
+    CALL_STATUS.DESTINATION_CONNECTED,
+  ];
+  if (!CANCELLABLE_STATUSES.includes(call.status)) {
     throw new AppError(
       StatusCodes.BAD_REQUEST,
       `Cannot cancel a call that is already ${call.status}`
@@ -108,6 +120,12 @@ const cancelCall = async (customerId: string, callId: string) => {
   await call.save();
 
   if (call.operatorId) {
+    // The operator was locked to this call (marked busy on accept) — free
+    // them back up since the customer just pulled the plug on it.
+    await OperatorProfile.findOneAndUpdate(
+      { userId: call.operatorId },
+      { availabilityStatus: OPERATOR_AVAILABILITY.ONLINE }
+    );
     socketHelper.emitToUser(call.operatorId.toString(), 'call:update', call);
   }
   socketHelper.emitToUser(customerId, 'call:update', call);

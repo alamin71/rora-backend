@@ -51,6 +51,13 @@ router.get(
   operatorOnly,
   OperatorCallController.getPerformance
 );
+// Registered before /calls/:id so the literal "active" segment never gets
+// swallowed by the :id wildcard.
+router.get(
+  '/calls/active',
+  operatorOnly,
+  OperatorCallController.getActiveCall
+);
 router.get('/calls/:id', operatorOnly, OperatorCallController.getOperatorCall);
 
 router.patch(

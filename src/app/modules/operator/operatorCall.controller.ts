@@ -142,6 +142,18 @@ const markFailed = catchAsync(async (req, res) => {
   });
 });
 
+const getActiveCall = catchAsync(async (req, res) => {
+  const result = await OperatorCallService.getActiveCall(req.user.id);
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: result
+      ? 'Active call retrieved successfully'
+      : 'No active call for this operator',
+    data: result,
+  });
+});
+
 const getOperatorCall = catchAsync(async (req, res) => {
   const result = await OperatorCallService.getOperatorCall(
     req.user.id,
@@ -190,6 +202,7 @@ export const OperatorCallController = {
   getQueue,
   acceptCall,
   skipCall,
+  getActiveCall,
   dialCustomer,
   customerConnected,
   dialDestination,

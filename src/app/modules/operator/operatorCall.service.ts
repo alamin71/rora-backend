@@ -66,7 +66,10 @@ const acceptCall = async (operatorId: string, callId: string) => {
 
   await OperatorProfile.findOneAndUpdate(
     { userId: operatorId },
-    { $inc: { acceptedCount: 1 } }
+    {
+      $inc: { acceptedCount: 1 },
+      availabilityStatus: OPERATOR_AVAILABILITY.BUSY,
+    }
   );
   await recomputeAcceptanceRate(operatorId);
 
@@ -244,7 +247,10 @@ const endCall = async (
 
   await OperatorProfile.findOneAndUpdate(
     { userId: operatorId },
-    { $inc: { totalCalls: 1, totalEarnings: operatorEarnings } }
+    {
+      $inc: { totalCalls: 1, totalEarnings: operatorEarnings },
+      availabilityStatus: OPERATOR_AVAILABILITY.ONLINE,
+    }
   );
 
   socketHelper.emitToUser(call.customerId.toString(), 'call:update', call);
@@ -274,9 +280,35 @@ const markFailed = async (
   call.endedAt = new Date();
   await call.save();
 
+  await OperatorProfile.findOneAndUpdate(
+    { userId: operatorId },
+    { availabilityStatus: OPERATOR_AVAILABILITY.ONLINE }
+  );
+
   socketHelper.emitToUser(call.customerId.toString(), 'call:update', call);
   socketHelper.emitToUser(operatorId, 'call:update', call);
   return call;
+};
+
+// The one call this operator is currently on, if any — lets the app recover
+// state after being closed/reopened mid-call, since an accepted call drops
+// out of the queue and its id isn't known to a freshly-launched app.
+const OPERATOR_ACTIVE_STATUSES = [
+  CALL_STATUS.ASSIGNED,
+  CALL_STATUS.DIALING_CUSTOMER,
+  CALL_STATUS.CUSTOMER_CONNECTED,
+  CALL_STATUS.DIALING_DESTINATION,
+  CALL_STATUS.DESTINATION_CONNECTED,
+  CALL_STATUS.CONFERENCING,
+];
+
+const getActiveCall = async (operatorId: string) => {
+  return Call.findOne({
+    operatorId,
+    status: { $in: OPERATOR_ACTIVE_STATUSES },
+  })
+    .populate('customerId', 'name phone')
+    .populate('destinationId', 'name prefix');
 };
 
 const getOperatorCall = async (operatorId: string, callId: string) => {
@@ -362,6 +394,7 @@ export const OperatorCallService = {
   getQueue,
   acceptCall,
   skipCall,
+  getActiveCall,
   dialDestination,
   destinationConnected,
   dialCustomer,
