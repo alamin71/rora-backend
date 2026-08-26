@@ -63,6 +63,7 @@ const userSchema = new Schema<IUser, UserModel>(
         callUpdates: { type: Boolean, default: true },
         lowBalanceAlerts: { type: Boolean, default: true },
         rechargeConfirmations: { type: Boolean, default: true },
+        payoutConfirmations: { type: Boolean, default: true },
       },
       default: () => ({}),
     },

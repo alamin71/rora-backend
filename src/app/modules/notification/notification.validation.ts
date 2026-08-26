@@ -19,6 +19,7 @@ const updatePreferencesZodSchema = z.object({
     callUpdates: z.boolean().optional(),
     lowBalanceAlerts: z.boolean().optional(),
     rechargeConfirmations: z.boolean().optional(),
+    payoutConfirmations: z.boolean().optional(),
   }),
 });
 

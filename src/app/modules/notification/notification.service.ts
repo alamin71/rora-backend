@@ -27,22 +27,52 @@ const unregisterDeviceToken = async (token: string) => {
   await DeviceToken.deleteOne({ token });
 };
 
-const getNotificationPreferences = async (userId: string) => {
+// Which toggles apply to which role — a customer has no payout, an operator
+// has no wallet balance to run low on.
+const ROLE_PREF_FIELDS: Partial<
+  Record<USER_ROLES, (keyof IUser['notificationPrefs'])[]>
+> = {
+  [USER_ROLES.OPERATOR]: ['callUpdates', 'payoutConfirmations'],
+  [USER_ROLES.USER]: ['callUpdates', 'lowBalanceAlerts', 'rechargeConfirmations'],
+};
+
+const pickPrefsForRole = (
+  prefs: IUser['notificationPrefs'],
+  role: USER_ROLES
+): Partial<IUser['notificationPrefs']> => {
+  const fields = ROLE_PREF_FIELDS[role];
+  if (!fields) return prefs;
+  return Object.fromEntries(fields.map((field) => [field, prefs[field]]));
+};
+
+const getNotificationPreferences = async (userId: string, role: USER_ROLES) => {
   const user = await User.findById(userId).select('notificationPrefs');
   if (!user) {
     throw new AppError(StatusCodes.NOT_FOUND, 'User not found');
   }
-  return user.notificationPrefs;
+  return pickPrefsForRole(user.notificationPrefs, role);
 };
 
 const updateNotificationPreferences = async (
   userId: string,
+  role: USER_ROLES,
   payload: Partial<IUser['notificationPrefs']>
 ) => {
+  // Silently drop any toggle that doesn't belong to this role instead of
+  // erroring — e.g. an operator's client sending a stale lowBalanceAlerts key.
+  const allowedFields = ROLE_PREF_FIELDS[role];
+  const filteredPayload = allowedFields
+    ? Object.fromEntries(
+        Object.entries(payload).filter(([key]) =>
+          allowedFields.includes(key as keyof IUser['notificationPrefs'])
+        )
+      )
+    : payload;
+
   const user = await User.findByIdAndUpdate(
     userId,
     { $set: Object.fromEntries(
-        Object.entries(payload).map(([key, value]) => [
+        Object.entries(filteredPayload).map(([key, value]) => [
           `notificationPrefs.${key}`,
           value,
         ])
@@ -53,7 +83,7 @@ const updateNotificationPreferences = async (
   if (!user) {
     throw new AppError(StatusCodes.NOT_FOUND, 'User not found');
   }
-  return user.notificationPrefs;
+  return pickPrefsForRole(user.notificationPrefs, role);
 };
 
 const audienceToRoleFilter = (audience: NOTIFICATION_AUDIENCE) => {

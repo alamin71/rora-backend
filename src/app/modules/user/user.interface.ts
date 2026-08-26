@@ -14,8 +14,11 @@ export type IUser = {
   verified: boolean;
   notificationPrefs: {
     callUpdates: boolean;
-    lowBalanceAlerts: boolean;
-    rechargeConfirmations: boolean;
+    // Customer-only — a balance/recharge concept that doesn't apply to operators.
+    lowBalanceAlerts?: boolean;
+    rechargeConfirmations?: boolean;
+    // Operator-only.
+    payoutConfirmations?: boolean;
   };
   authentication?: {
     isResetPassword: boolean;

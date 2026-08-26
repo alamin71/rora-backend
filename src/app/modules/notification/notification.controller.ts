@@ -32,7 +32,8 @@ const unregisterDeviceToken = catchAsync(async (req, res) => {
 
 const getPreferences = catchAsync(async (req, res) => {
   const result = await NotificationService.getNotificationPreferences(
-    req.user.id
+    req.user.id,
+    req.user.role
   );
 
   sendResponse(res, {
@@ -46,6 +47,7 @@ const getPreferences = catchAsync(async (req, res) => {
 const updatePreferences = catchAsync(async (req, res) => {
   const result = await NotificationService.updateNotificationPreferences(
     req.user.id,
+    req.user.role,
     req.body
   );
 
