@@ -50,6 +50,25 @@ const recomputeAcceptanceRate = async (operatorId: string) => {
   );
 };
 
+// The operator app can't force-end a live cellular call — only the operator
+// can hang up. What we *can* do is give it the customer's current balance
+// and this destination's rate on every step update, so it can compute a
+// live countdown locally and prompt the operator to end the call in time.
+const attachBillingInfo = async (call: any) => {
+  const customerId = call.customerId?._id ?? call.customerId;
+  const destinationId = call.destinationId?._id ?? call.destinationId;
+  const [wallet, destination] = await Promise.all([
+    Wallet.findOne({ userId: customerId }).select('balanceMinutes'),
+    Destination.findById(destinationId).select('customerRatePerMin'),
+  ]);
+  const plain = typeof call.toObject === 'function' ? call.toObject() : call;
+  return {
+    ...plain,
+    customerBalanceMinutes: wallet?.balanceMinutes ?? 0,
+    customerRatePerMin: destination?.customerRatePerMin ?? null,
+  };
+};
+
 const acceptCall = async (operatorId: string, callId: string) => {
   // Atomic — only the first operator to hit this wins the race
   const call = await Call.findOneAndUpdate(
@@ -73,8 +92,9 @@ const acceptCall = async (operatorId: string, callId: string) => {
   );
   await recomputeAcceptanceRate(operatorId);
 
-  socketHelper.emitToUser(call.customerId.toString(), 'call:update', call);
-  socketHelper.emitToUser(operatorId, 'call:update', call);
+  const enrichedCall = await attachBillingInfo(call);
+  socketHelper.emitToUser(call.customerId.toString(), 'call:update', enrichedCall);
+  socketHelper.emitToUser(operatorId, 'call:update', enrichedCall);
   // Tell every other online operator's queue to drop this one
   const onlineOperators = await OperatorProfile.find({
     availabilityStatus: OPERATOR_AVAILABILITY.ONLINE,
@@ -86,7 +106,7 @@ const acceptCall = async (operatorId: string, callId: string) => {
     { id: call._id.toString() }
   );
 
-  return call;
+  return enrichedCall;
 };
 
 const skipCall = async (operatorId: string) => {
@@ -131,9 +151,10 @@ const transitionCall = async (
   call[timestampField] = new Date();
   await call.save();
 
-  socketHelper.emitToUser(call.customerId.toString(), 'call:update', call);
-  socketHelper.emitToUser(operatorId, 'call:update', call);
-  return call;
+  const enrichedCall = await attachBillingInfo(call);
+  socketHelper.emitToUser(call.customerId.toString(), 'call:update', enrichedCall);
+  socketHelper.emitToUser(operatorId, 'call:update', enrichedCall);
+  return enrichedCall;
 };
 
 // Destination (Eritrea/Sudan) is dialed first, then the customer (Egypt) —
@@ -303,12 +324,13 @@ const OPERATOR_ACTIVE_STATUSES = [
 ];
 
 const getActiveCall = async (operatorId: string) => {
-  return Call.findOne({
+  const call = await Call.findOne({
     operatorId,
     status: { $in: OPERATOR_ACTIVE_STATUSES },
   })
     .populate('customerId', 'name phone')
     .populate('destinationId', 'name prefix');
+  return call ? attachBillingInfo(call) : null;
 };
 
 const getOperatorCall = async (operatorId: string, callId: string) => {
@@ -319,7 +341,7 @@ const getOperatorCall = async (operatorId: string, callId: string) => {
   if (!call) {
     throw new AppError(StatusCodes.NOT_FOUND, 'Call not found');
   }
-  return call;
+  return attachBillingInfo(call);
 };
 
 const getHistory = async (
@@ -357,22 +379,35 @@ const getEarnings = async (operatorId: string) => {
   startOfToday.setHours(0, 0, 0, 0);
   const startOfWeek = new Date(startOfToday);
   startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+  const startOfMonth = new Date(
+    startOfToday.getFullYear(),
+    startOfToday.getMonth(),
+    1
+  );
 
-  const [today, thisWeek] = await Promise.all([
+  const sumEarningsSince = (since: Date) =>
     Call.aggregate([
-      { $match: { operatorId: profile.userId, status: CALL_STATUS.COMPLETED, endedAt: { $gte: startOfToday } } },
+      {
+        $match: {
+          operatorId: profile.userId,
+          status: CALL_STATUS.COMPLETED,
+          endedAt: { $gte: since },
+        },
+      },
       { $group: { _id: null, total: { $sum: '$operatorEarnings' } } },
-    ]),
-    Call.aggregate([
-      { $match: { operatorId: profile.userId, status: CALL_STATUS.COMPLETED, endedAt: { $gte: startOfWeek } } },
-      { $group: { _id: null, total: { $sum: '$operatorEarnings' } } },
-    ]),
+    ]);
+
+  const [today, thisWeek, thisMonth] = await Promise.all([
+    sumEarningsSince(startOfToday),
+    sumEarningsSince(startOfWeek),
+    sumEarningsSince(startOfMonth),
   ]);
 
   return {
     totalEarnings: profile.totalEarnings,
     today: today[0]?.total ?? 0,
     thisWeek: thisWeek[0]?.total ?? 0,
+    thisMonth: thisMonth[0]?.total ?? 0,
   };
 };
 
