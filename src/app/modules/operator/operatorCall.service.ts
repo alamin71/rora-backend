@@ -377,8 +377,13 @@ const getEarnings = async (operatorId: string) => {
 
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
+  // Monday-start week, to line up with the trend/call-volume chart below
+  // (M T W T F S S) rather than a Sunday-start week.
   const startOfWeek = new Date(startOfToday);
-  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+  const dayIndex = startOfWeek.getDay(); // 0=Sun..6=Sat
+  startOfWeek.setDate(startOfWeek.getDate() - (dayIndex === 0 ? 6 : dayIndex - 1));
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(endOfWeek.getDate() + 7);
   const startOfMonth = new Date(
     startOfToday.getFullYear(),
     startOfToday.getMonth(),
@@ -397,17 +402,38 @@ const getEarnings = async (operatorId: string) => {
       { $group: { _id: null, total: { $sum: '$operatorEarnings' } } },
     ]);
 
-  const [today, thisWeek, thisMonth] = await Promise.all([
+  const [today, thisWeek, thisMonth, weekCalls] = await Promise.all([
     sumEarningsSince(startOfToday),
     sumEarningsSince(startOfWeek),
     sumEarningsSince(startOfMonth),
+    Call.find({
+      operatorId: profile.userId,
+      status: CALL_STATUS.COMPLETED,
+      endedAt: { $gte: startOfWeek, $lt: endOfWeek },
+    }).select('endedAt operatorEarnings'),
   ]);
+
+  // Earnings trend + call volume for the current week, Monday through Sunday.
+  const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const earningsByDay = new Array(7).fill(0);
+  const callsByDay = new Array(7).fill(0);
+  for (const call of weekCalls) {
+    const jsDay = (call.endedAt as Date).getDay(); // 0=Sun..6=Sat
+    const idx = jsDay === 0 ? 6 : jsDay - 1; // remap to Mon=0..Sun=6
+    earningsByDay[idx] += call.operatorEarnings ?? 0;
+    callsByDay[idx] += 1;
+  }
 
   return {
     totalEarnings: profile.totalEarnings,
     today: today[0]?.total ?? 0,
     thisWeek: thisWeek[0]?.total ?? 0,
     thisMonth: thisMonth[0]?.total ?? 0,
+    trend: DAY_LABELS.map((day, i) => ({
+      day,
+      earnings: Number(earningsByDay[i].toFixed(2)),
+    })),
+    callVolume: DAY_LABELS.map((day, i) => ({ day, calls: callsByDay[i] })),
   };
 };
 
