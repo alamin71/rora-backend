@@ -407,11 +407,11 @@ const getHistory = async (
   ]);
 
   return {
-    statictis: [
-      { calls: total },
-      { Minutes: summary[0]?.totalMinutes ?? 0 },
-      { Earnings: `AED ${summary[0]?.totalEarnings ?? 0}` },
-    ],
+    statictis: {
+      calls: total,
+      Minutes: summary[0]?.totalMinutes ?? 0,
+      Earnings: `AED ${summary[0]?.totalEarnings ?? 0}`,
+    },
     calls,
     meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
   };
