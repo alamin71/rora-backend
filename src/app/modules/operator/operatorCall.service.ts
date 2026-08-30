@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { StatusCodes } from 'http-status-codes';
 import AppError from '../../../errors/AppError';
 import { CALL_FAILURE_REASON, CALL_STATUS } from '../../../enums/call';
@@ -344,9 +345,30 @@ const getOperatorCall = async (operatorId: string, callId: string) => {
   return attachBillingInfo(call);
 };
 
+// "Today" tab's boundary always starts fresh; "Weekly"/"Monthly" reuse the
+// same Monday-start-week convention as the earnings trend for consistency.
+const periodStartDate = (period?: string): Date | undefined => {
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+
+  if (period === 'weekly') {
+    const startOfWeek = new Date(startOfToday);
+    const dayIndex = startOfWeek.getDay();
+    startOfWeek.setDate(
+      startOfWeek.getDate() - (dayIndex === 0 ? 6 : dayIndex - 1)
+    );
+    return startOfWeek;
+  }
+  if (period === 'monthly') {
+    return new Date(startOfToday.getFullYear(), startOfToday.getMonth(), 1);
+  }
+  // Default / 'today'
+  return startOfToday;
+};
+
 const getHistory = async (
   operatorId: string,
-  query: { page?: number; limit?: number; search?: string }
+  query: { page?: number; limit?: number; search?: string; period?: string }
 ) => {
   const page = Math.max(1, Number(query.page) || 1);
   const limit = Math.max(1, Math.min(100, Number(query.limit) || 20));
@@ -354,18 +376,44 @@ const getHistory = async (
   const filter: Record<string, unknown> = { operatorId };
   if (query.search) filter.numberDialed = { $regex: query.search, $options: 'i' };
 
-  const [calls, total] = await Promise.all([
+  const since = periodStartDate(query.period);
+  if (since) filter.createdAt = { $gte: since };
+
+  const [calls, total, summary] = await Promise.all([
     Call.find(filter)
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
       .populate('customerId', 'name phone'),
     Call.countDocuments(filter),
+    Call.aggregate([
+      // aggregate() bypasses schema casting, unlike find()/countDocuments()
+      // — operatorId has to be cast to ObjectId by hand or this matches nothing.
+      {
+        $match: {
+          ...filter,
+          operatorId: new mongoose.Types.ObjectId(operatorId),
+          status: CALL_STATUS.COMPLETED,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalMinutes: { $sum: '$minutesUsed' },
+          totalEarnings: { $sum: '$operatorEarnings' },
+        },
+      },
+    ]),
   ]);
 
   return {
     calls,
     meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    statictis: [
+      { calls: total },
+      { Minutes: summary[0]?.totalMinutes ?? 0 },
+      { Earnings: `AED ${summary[0]?.totalEarnings ?? 0}` },
+    ],
   };
 };
 
