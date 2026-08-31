@@ -9,6 +9,7 @@ import { fcmHelper } from '../../../helpers/fcmHelper';
 import { User } from '../user/user.model';
 import { DeviceToken } from './deviceToken.model';
 import { Notification } from './notification.model';
+import { NotificationRead } from './notificationRead.model';
 import { IUser } from '../user/user.interface';
 
 const registerDeviceToken = async (
@@ -86,6 +87,73 @@ const updateNotificationPreferences = async (
   return pickPrefsForRole(user.notificationPrefs, role);
 };
 
+// A logged-in user's own notification feed — everything broadcast to "all"
+// plus whatever was targeted at their specific role.
+const roleToAudienceFilter = (role: USER_ROLES) => {
+  if (role === USER_ROLES.OPERATOR) {
+    return { audience: { $in: [NOTIFICATION_AUDIENCE.ALL, NOTIFICATION_AUDIENCE.OPERATORS] } };
+  }
+  if (role === USER_ROLES.USER) {
+    return { audience: { $in: [NOTIFICATION_AUDIENCE.ALL, NOTIFICATION_AUDIENCE.CUSTOMERS] } };
+  }
+  return {};
+};
+
+const listMyNotifications = async (
+  userId: string,
+  role: USER_ROLES,
+  query: { page?: number; limit?: number }
+) => {
+  const page = Math.max(1, Number(query.page) || 1);
+  const limit = Math.max(1, Math.min(100, Number(query.limit) || 20));
+  const filter = roleToAudienceFilter(role);
+
+  const [notifications, total] = await Promise.all([
+    Notification.find(filter)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit),
+    Notification.countDocuments(filter),
+  ]);
+
+  const reads = await NotificationRead.find({
+    userId,
+    notificationId: { $in: notifications.map((n) => n._id) },
+  }).select('notificationId');
+  const readIds = new Set(reads.map((r) => r.notificationId.toString()));
+
+  return {
+    notifications: notifications.map((n) => ({
+      ...n.toObject(),
+      isRead: readIds.has(n._id.toString()),
+    })),
+    meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  };
+};
+
+const markNotificationRead = async (userId: string, notificationId: string) => {
+  const notification = await Notification.findById(notificationId);
+  if (!notification) {
+    throw new AppError(StatusCodes.NOT_FOUND, 'Notification not found');
+  }
+  await NotificationRead.findOneAndUpdate(
+    { userId, notificationId },
+    { userId, notificationId, readAt: new Date() },
+    { upsert: true }
+  );
+};
+
+const getUnreadCount = async (userId: string, role: USER_ROLES) => {
+  const filter = roleToAudienceFilter(role);
+  const [allIds, reads] = await Promise.all([
+    Notification.find(filter).select('_id'),
+    NotificationRead.find({ userId }).select('notificationId'),
+  ]);
+  const readIds = new Set(reads.map((r) => r.notificationId.toString()));
+  const unread = allIds.filter((n) => !readIds.has(n._id.toString())).length;
+  return { unread };
+};
+
 const audienceToRoleFilter = (audience: NOTIFICATION_AUDIENCE) => {
   if (audience === NOTIFICATION_AUDIENCE.OPERATORS) {
     return { role: USER_ROLES.OPERATOR };
@@ -153,6 +221,9 @@ export const NotificationService = {
   unregisterDeviceToken,
   getNotificationPreferences,
   updateNotificationPreferences,
+  listMyNotifications,
+  markNotificationRead,
+  getUnreadCount,
   sendBroadcast,
   listNotifications,
 };

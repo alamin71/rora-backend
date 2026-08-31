@@ -59,6 +59,43 @@ const updatePreferences = catchAsync(async (req, res) => {
   });
 });
 
+const listMyNotifications = catchAsync(async (req, res) => {
+  const result = await NotificationService.listMyNotifications(
+    req.user.id,
+    req.user.role,
+    req.query
+  );
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Notifications retrieved successfully',
+    data: result,
+  });
+});
+
+const markNotificationRead = catchAsync(async (req, res) => {
+  await NotificationService.markNotificationRead(req.user.id, req.params.id);
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Notification marked as read',
+    data: null,
+  });
+});
+
+const getUnreadCount = catchAsync(async (req, res) => {
+  const result = await NotificationService.getUnreadCount(
+    req.user.id,
+    req.user.role
+  );
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Unread count retrieved successfully',
+    data: result,
+  });
+});
+
 const sendBroadcast = catchAsync(async (req, res) => {
   const result = await NotificationService.sendBroadcast(
     req.body,
@@ -89,6 +126,9 @@ export const NotificationController = {
   unregisterDeviceToken,
   getPreferences,
   updatePreferences,
+  listMyNotifications,
+  markNotificationRead,
+  getUnreadCount,
   sendBroadcast,
   listNotifications,
 };

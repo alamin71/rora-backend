@@ -28,6 +28,10 @@ router.delete(
   NotificationController.unregisterDeviceToken
 );
 
+router.get('/', anyRole, NotificationController.listMyNotifications);
+router.get('/unread-count', anyRole, NotificationController.getUnreadCount);
+router.patch('/:id/read', anyRole, NotificationController.markNotificationRead);
+
 router.get('/preferences', anyRole, NotificationController.getPreferences);
 router.patch(
   '/preferences',
