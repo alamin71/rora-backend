@@ -13,9 +13,14 @@ app.use(Morgan.successHandler);
 app.use(Morgan.errorHandler);
 
 //body parser
+const allowedOrigins = config.allowed_origins
+  ?.split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 app.use(
   cors({
-    origin: config.allowed_origins || "*",
+    origin: allowedOrigins && allowedOrigins.length > 0 ? allowedOrigins : "*",
     credentials: true,
   })
 );
