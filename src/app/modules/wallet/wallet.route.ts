@@ -22,4 +22,22 @@ router.post(
   WalletController.transfer
 );
 
+router.post(
+  '/admin/:id/transfer',
+  auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
+  validateRequest(WalletValidation.adminGrantMinutesZodSchema),
+  WalletController.adminGrant
+);
+
+router.get(
+  '/admin/distributors/report',
+  auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
+  WalletController.getDistributorReport
+);
+router.get(
+  '/admin/distributors/transfers',
+  auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
+  WalletController.getDistributorTransfers
+);
+
 export const WalletRouter = router;

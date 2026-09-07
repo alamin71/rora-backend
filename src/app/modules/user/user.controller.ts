@@ -92,8 +92,66 @@ const deleteProfile = catchAsync(async (req, res) => {
   });
 });
 
+const getCustomerStats = catchAsync(async (req, res) => {
+  const result = await UserService.getCustomerStats();
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Customer stats retrieved successfully',
+    data: result,
+  });
+});
+
+const listCustomersAdmin = catchAsync(async (req, res) => {
+  const result = await UserService.listCustomersAdmin(req.query as never);
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Customers retrieved successfully',
+    data: result,
+  });
+});
+
+const getCustomerDetail = catchAsync(async (req, res) => {
+  const result = await UserService.getCustomerDetail(req.params.id);
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Customer retrieved successfully',
+    data: result,
+  });
+});
+
+const suspendCustomer = catchAsync(async (req, res) => {
+  const result = await UserService.suspendCustomer(
+    req.params.id,
+    req.body.reason
+  );
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Customer suspended successfully',
+    data: result,
+  });
+});
+
+const markAsDistributor = catchAsync(async (req, res) => {
+  const result = await UserService.markAsDistributor(req.params.id, req.body);
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Customer marked as distributor successfully',
+    data: result,
+  });
+});
+
 export const UserController = {
   getUserProfile,
   updateProfile,
   deleteProfile,
+  getCustomerStats,
+  listCustomersAdmin,
+  getCustomerDetail,
+  suspendCustomer,
+  markAsDistributor,
 };

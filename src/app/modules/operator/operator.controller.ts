@@ -81,9 +81,56 @@ const verifyOperator = catchAsync(async (req, res) => {
   });
 });
 
+const getOperatorStats = catchAsync(async (req, res) => {
+  const result = await OperatorService.getOperatorStats();
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Operator stats retrieved successfully',
+    data: result,
+  });
+});
+
+const listOperatorsAdmin = catchAsync(async (req, res) => {
+  const result = await OperatorService.listOperatorsAdmin(req.query as never);
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Operators retrieved successfully',
+    data: result,
+  });
+});
+
+const getOperatorDetail = catchAsync(async (req, res) => {
+  const result = await OperatorService.getOperatorDetail(req.params.id);
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Operator retrieved successfully',
+    data: result,
+  });
+});
+
+const suspendOperator = catchAsync(async (req, res) => {
+  const result = await OperatorService.suspendOperator(
+    req.params.id,
+    req.body.reason
+  );
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Operator suspended successfully',
+    data: result,
+  });
+});
+
 export const OperatorController = {
   inviteOperator,
   getInvitation,
   operatorSignup,
   verifyOperator,
+  getOperatorStats,
+  listOperatorsAdmin,
+  getOperatorDetail,
+  suspendOperator,
 };

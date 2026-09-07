@@ -32,6 +32,7 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: any) => {
     'permits',
     'insurance',
     'driverLicense',
+    'idDocument',
   ];
   const audioFields = ['audio'];
   const videoFields = ['video'];

@@ -8,6 +8,28 @@ const updateUserZodSchema = z.object({
   }),
 });
 
+const suspendCustomerZodSchema = z.object({
+  body: z.object({
+    reason: z.string().nonempty({ message: 'A reason is required' }),
+  }),
+});
+
+const markAsDistributorZodSchema = z.object({
+  body: z.object({
+    monthlyIssuanceLimit: z.number().positive().optional(),
+    commissionRatePercent: z.number().min(0).max(100).optional(),
+  }),
+});
+
+const rejectKycZodSchema = z.object({
+  body: z.object({
+    reason: z.string().nonempty({ message: 'A reason is required' }),
+  }),
+});
+
 export const UserValidation = {
   updateUserZodSchema,
+  suspendCustomerZodSchema,
+  markAsDistributorZodSchema,
+  rejectKycZodSchema,
 };

@@ -19,7 +19,9 @@ router.post(
 router.get('/mine', operatorOnly, PayoutController.getMyPayouts);
 
 router.get('/admin/stats', adminOnly, PayoutController.getPayoutStats);
+router.get('/admin/export', adminOnly, PayoutController.exportPayoutsCsv);
 router.get('/admin', adminOnly, PayoutController.listAllPayouts);
+router.get('/admin/:id', adminOnly, PayoutController.getPayoutDetail);
 router.patch('/admin/:id/approve', adminOnly, PayoutController.approvePayout);
 router.patch('/admin/:id/mark-paid', adminOnly, PayoutController.markPaid);
 router.patch(

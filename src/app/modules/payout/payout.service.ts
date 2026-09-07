@@ -3,7 +3,9 @@ import { StatusCodes } from 'http-status-codes';
 import AppError from '../../../errors/AppError';
 import { PAYOUT_METHOD, PAYOUT_STATUS } from '../../../enums/payout';
 import { OperatorProfile } from '../operator/operatorProfile.model';
+import { User } from '../user/user.model';
 import { Payout } from './payout.model';
+import toCsv from '../../../utils/toCsv';
 
 const generatePayoutRef = () =>
   `PO-${Date.now().toString().slice(-4)}${crypto
@@ -91,16 +93,34 @@ const getMyPayouts = async (
   };
 };
 
+const buildPayoutFilter = async (query: {
+  status?: PAYOUT_STATUS;
+  search?: string;
+}) => {
+  const filter: Record<string, unknown> = {};
+  if (query.status) filter.status = query.status;
+
+  if (query.search) {
+    const regex = { $regex: query.search, $options: 'i' };
+    const matchingOperators = await User.find({ name: regex }).select('_id');
+    filter.$or = [
+      { payoutRef: regex },
+      { operatorId: { $in: matchingOperators.map((o) => o._id) } },
+    ];
+  }
+  return filter;
+};
+
 const listAllPayouts = async (query: {
   page?: number;
   limit?: number;
   status?: PAYOUT_STATUS;
+  search?: string;
 }) => {
   const page = Math.max(1, Number(query.page) || 1);
   const limit = Math.max(1, Math.min(100, Number(query.limit) || 20));
 
-  const filter: Record<string, unknown> = {};
-  if (query.status) filter.status = query.status;
+  const filter = await buildPayoutFilter(query);
 
   const [payouts, total] = await Promise.all([
     Payout.find(filter)
@@ -115,6 +135,50 @@ const listAllPayouts = async (query: {
     payouts,
     meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
   };
+};
+
+const EXPORT_ROW_CAP = 5000;
+
+const exportPayoutsCsv = async (query: {
+  status?: PAYOUT_STATUS;
+  search?: string;
+}) => {
+  const filter = await buildPayoutFilter(query);
+  const payouts = await Payout.find(filter)
+    .sort({ createdAt: -1 })
+    .limit(EXPORT_ROW_CAP)
+    .populate('operatorId', 'name phone');
+
+  const rows = payouts.map((p) => ({
+    payoutRef: p.payoutRef,
+    operator: (p.operatorId as unknown as { name?: string })?.name ?? '',
+    phone: (p.operatorId as unknown as { phone?: string })?.phone ?? '',
+    amountMoney: p.amountMoney,
+    method: p.method,
+    status: p.status,
+    createdAt: p.createdAt,
+  }));
+
+  return toCsv(rows, [
+    { key: 'payoutRef', label: 'Payout Ref' },
+    { key: 'operator', label: 'Operator' },
+    { key: 'phone', label: 'Phone' },
+    { key: 'amountMoney', label: 'Amount (AED)' },
+    { key: 'method', label: 'Method' },
+    { key: 'status', label: 'Status' },
+    { key: 'createdAt', label: 'Date' },
+  ]);
+};
+
+const getPayoutDetail = async (id: string) => {
+  const payout = await Payout.findById(id).populate(
+    'operatorId',
+    'name phone'
+  );
+  if (!payout) {
+    throw new AppError(StatusCodes.NOT_FOUND, 'Payout not found');
+  }
+  return payout;
 };
 
 const getPayoutStats = async () => {
@@ -202,6 +266,8 @@ export const PayoutService = {
   requestPayout,
   getMyPayouts,
   listAllPayouts,
+  exportPayoutsCsv,
+  getPayoutDetail,
   getPayoutStats,
   approvePayout,
   markPaid,

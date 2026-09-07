@@ -13,6 +13,8 @@ export type IPayout = {
   processedBy?: Types.ObjectId;
   approvedAt?: Date;
   paidAt?: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 };
 
 export type PayoutModel = Model<IPayout>;

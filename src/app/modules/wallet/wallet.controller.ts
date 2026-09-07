@@ -39,8 +39,53 @@ const transfer = catchAsync(async (req, res) => {
   });
 });
 
+const adminGrant = catchAsync(async (req, res) => {
+  const result = await WalletService.adminGrantMinutes(
+    req.user.id,
+    req.params.id,
+    req.body.minutes
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: `${req.body.minutes} minutes transferred successfully`,
+    data: result,
+  });
+});
+
+const getDistributorReport = catchAsync(async (req, res) => {
+  const [stats, weeklyTrend, topPerformer] = await Promise.all([
+    WalletService.getDistributorStats(),
+    WalletService.getDistributorWeeklyTrend(),
+    WalletService.getTopDistributor(),
+  ]);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Distributors report retrieved successfully',
+    data: { ...stats, weeklyTrend, topPerformer },
+  });
+});
+
+const getDistributorTransfers = catchAsync(async (req, res) => {
+  const result = await WalletService.getDistributorTransferHistory(
+    req.query as never
+  );
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Transfer history retrieved successfully',
+    data: result,
+  });
+});
+
 export const WalletController = {
   getBalance,
   getTransactions,
   transfer,
+  adminGrant,
+  getDistributorReport,
+  getDistributorTransfers,
 };

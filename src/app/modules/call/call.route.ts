@@ -8,6 +8,7 @@ import { CallValidation } from './call.validation';
 const router = express.Router();
 
 const customerOnly = auth(USER_ROLES.USER);
+const adminOnly = auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN);
 
 router.post(
   '/request',
@@ -15,6 +16,13 @@ router.post(
   validateRequest(CallValidation.requestCallZodSchema),
   CallController.requestCall
 );
+
+// Admin — registered before the customerOnly /:id below so the literal
+// "admin" segment never gets swallowed by the :id wildcard.
+router.get('/admin/stats', adminOnly, CallController.getCallStatsAdmin);
+router.get('/admin/export', adminOnly, CallController.exportCallsCsv);
+router.get('/admin', adminOnly, CallController.listCallsAdmin);
+
 router.get('/', customerOnly, CallController.listCalls);
 router.get('/:id', customerOnly, CallController.getCall);
 router.patch('/:id/cancel', customerOnly, CallController.cancelCall);

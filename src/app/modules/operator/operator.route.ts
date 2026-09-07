@@ -25,6 +25,18 @@ router.patch(
   OperatorController.verifyOperator
 );
 
+// Registered before /admin/:id so the literal "stats" segment never gets
+// swallowed by the :id wildcard.
+router.get('/admin/stats', adminOnly, OperatorController.getOperatorStats);
+router.get('/admin', adminOnly, OperatorController.listOperatorsAdmin);
+router.get('/admin/:id', adminOnly, OperatorController.getOperatorDetail);
+router.patch(
+  '/admin/:id/suspend',
+  adminOnly,
+  validateRequest(OperatorValidation.suspendOperatorZodSchema),
+  OperatorController.suspendOperator
+);
+
 // Public — reached before the operator has an account
 router.get('/invitation/:code', OperatorController.getInvitation);
 router.post(

@@ -10,6 +10,7 @@ import { OperatorProfile } from '../operator/operatorProfile.model';
 import { Wallet } from '../wallet/wallet.model';
 import { Call } from './call.model';
 import { CallRating } from './callRating.model';
+import toCsv from '../../../utils/toCsv';
 
 const ACTIVE_STATUSES = [
   CALL_STATUS.REQUESTED,
@@ -227,10 +228,129 @@ const rateCall = async (
   return rating;
 };
 
+const getCallStatsAdmin = async () => {
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+
+  const [completedToday, failedToday, avgDurationAgg] = await Promise.all([
+    Call.countDocuments({
+      status: CALL_STATUS.COMPLETED,
+      endedAt: { $gte: startOfToday },
+    }),
+    Call.countDocuments({
+      status: CALL_STATUS.FAILED,
+      endedAt: { $gte: startOfToday },
+    }),
+    Call.aggregate([
+      { $match: { status: CALL_STATUS.COMPLETED } },
+      { $group: { _id: null, avg: { $avg: '$minutesUsed' } } },
+    ]),
+  ]);
+
+  return {
+    completedToday,
+    failedToday,
+    avgDurationMinutes: Number((avgDurationAgg[0]?.avg ?? 0).toFixed(1)),
+  };
+};
+
+const buildCallFilterAdmin = (query: {
+  search?: string;
+  status?: CALL_STATUS;
+  days?: number;
+}) => {
+  const filter: Record<string, unknown> = {};
+  if (query.status) filter.status = query.status;
+  if (query.search) {
+    filter.$or = [
+      { callRef: { $regex: query.search, $options: 'i' } },
+      { numberDialed: { $regex: query.search, $options: 'i' } },
+    ];
+  }
+  if (query.days) {
+    const since = new Date();
+    since.setDate(since.getDate() - Number(query.days));
+    filter.requestedAt = { $gte: since };
+  }
+  return filter;
+};
+
+const listCallsAdmin = async (query: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: CALL_STATUS;
+  days?: number;
+}) => {
+  const page = Math.max(1, Number(query.page) || 1);
+  const limit = Math.max(1, Math.min(100, Number(query.limit) || 20));
+
+  const filter = buildCallFilterAdmin(query);
+
+  const [calls, total] = await Promise.all([
+    Call.find(filter)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .populate('customerId', 'name phone')
+      .populate('operatorId', 'name phone')
+      .populate('destinationId', 'name prefix'),
+    Call.countDocuments(filter),
+  ]);
+
+  return {
+    calls,
+    meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  };
+};
+
+const CALL_EXPORT_ROW_CAP = 5000;
+
+const exportCallsCsv = async (query: {
+  search?: string;
+  status?: CALL_STATUS;
+  days?: number;
+}) => {
+  const filter = buildCallFilterAdmin(query);
+  const calls = await Call.find(filter)
+    .sort({ createdAt: -1 })
+    .limit(CALL_EXPORT_ROW_CAP)
+    .populate('customerId', 'name phone')
+    .populate('operatorId', 'name phone')
+    .populate('destinationId', 'name');
+
+  const rows = calls.map((c) => ({
+    callRef: c.callRef,
+    customer: (c.customerId as unknown as { name?: string })?.name ?? '',
+    operator: (c.operatorId as unknown as { name?: string })?.name ?? '',
+    destination: (c.destinationId as unknown as { name?: string })?.name ?? '',
+    numberDialed: c.numberDialed,
+    status: c.status,
+    minutesUsed: c.minutesUsed ?? '',
+    costMoney: c.costMoney ?? '',
+    requestedAt: c.requestedAt,
+  }));
+
+  return toCsv(rows, [
+    { key: 'callRef', label: 'Call Ref' },
+    { key: 'customer', label: 'Customer' },
+    { key: 'operator', label: 'Operator' },
+    { key: 'destination', label: 'Destination' },
+    { key: 'numberDialed', label: 'Number Dialed' },
+    { key: 'status', label: 'Status' },
+    { key: 'minutesUsed', label: 'Minutes' },
+    { key: 'costMoney', label: 'Charged (AED)' },
+    { key: 'requestedAt', label: 'Date' },
+  ]);
+};
+
 export const CallService = {
   requestCall,
   cancelCall,
   getCallById,
   listCustomerCalls,
   rateCall,
+  getCallStatsAdmin,
+  listCallsAdmin,
+  exportCallsCsv,
 };

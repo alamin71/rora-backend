@@ -22,7 +22,14 @@ const operatorSignupZodSchema = z.object({
   phoneNumbers: z.array(z.string()).optional(),
 });
 
+const suspendOperatorZodSchema = z.object({
+  body: z.object({
+    reason: z.string().nonempty({ message: 'A reason is required' }),
+  }),
+});
+
 export const OperatorValidation = {
   inviteOperatorZodSchema,
   operatorSignupZodSchema,
+  suspendOperatorZodSchema,
 };

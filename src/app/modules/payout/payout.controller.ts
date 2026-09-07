@@ -33,6 +33,26 @@ const listAllPayouts = catchAsync(async (req, res) => {
   });
 });
 
+const exportPayoutsCsv = catchAsync(async (req, res) => {
+  const csv = await PayoutService.exportPayoutsCsv(req.query as never);
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader(
+    'Content-Disposition',
+    'attachment; filename="payouts-export.csv"'
+  );
+  res.send(csv);
+});
+
+const getPayoutDetail = catchAsync(async (req, res) => {
+  const result = await PayoutService.getPayoutDetail(req.params.id);
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Payout retrieved successfully',
+    data: result,
+  });
+});
+
 const getPayoutStats = catchAsync(async (req, res) => {
   const result = await PayoutService.getPayoutStats();
   sendResponse(res, {
@@ -81,6 +101,8 @@ export const PayoutController = {
   requestPayout,
   getMyPayouts,
   listAllPayouts,
+  exportPayoutsCsv,
+  getPayoutDetail,
   getPayoutStats,
   approvePayout,
   markPaid,

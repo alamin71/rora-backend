@@ -78,6 +78,36 @@ const reportCall = catchAsync(async (req, res) => {
   });
 });
 
+const getCallStatsAdmin = catchAsync(async (req, res) => {
+  const result = await CallService.getCallStatsAdmin();
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Call stats retrieved successfully',
+    data: result,
+  });
+});
+
+const listCallsAdmin = catchAsync(async (req, res) => {
+  const result = await CallService.listCallsAdmin(req.query as never);
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Calls retrieved successfully',
+    data: result,
+  });
+});
+
+const exportCallsCsv = catchAsync(async (req, res) => {
+  const csv = await CallService.exportCallsCsv(req.query as never);
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader(
+    'Content-Disposition',
+    'attachment; filename="calls-export.csv"'
+  );
+  res.send(csv);
+});
+
 export const CallController = {
   requestCall,
   cancelCall,
@@ -85,4 +115,7 @@ export const CallController = {
   listCalls,
   rateCall,
   reportCall,
+  getCallStatsAdmin,
+  listCallsAdmin,
+  exportCallsCsv,
 };

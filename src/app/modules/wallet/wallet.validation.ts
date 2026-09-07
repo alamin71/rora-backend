@@ -10,6 +10,16 @@ const transferMinutesZodSchema = z.object({
   }),
 });
 
+const adminGrantMinutesZodSchema = z.object({
+  body: z.object({
+    minutes: z
+      .number({ message: 'Minutes is required' })
+      .int()
+      .positive({ message: 'Minutes must be a positive whole number' }),
+  }),
+});
+
 export const WalletValidation = {
   transferMinutesZodSchema,
+  adminGrantMinutesZodSchema,
 };

@@ -4,6 +4,7 @@ export const POLICY_PAGE_TYPES = [
   'privacy-policy',
   'terms-conditions',
   'about-app',
+  'help-center',
 ] as const;
 
 export type PolicyPageType = (typeof POLICY_PAGE_TYPES)[number];

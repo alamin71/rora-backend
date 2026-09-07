@@ -11,6 +11,7 @@ const DEFAULT_POLICY_PAGE_TITLES: Record<PolicyPageType, string> = {
   'privacy-policy': 'Privacy Policy',
   'terms-conditions': 'Terms & Conditions',
   'about-app': 'About This App',
+  'help-center': 'Help Center',
 };
 
 const normalizePolicyPageType = (type: string): PolicyPageType => {

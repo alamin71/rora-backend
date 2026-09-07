@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { PipelineStage } from 'mongoose';
 import { StatusCodes } from 'http-status-codes';
 import { Secret } from 'jsonwebtoken';
 import AppError from '../../../errors/AppError';
@@ -195,9 +196,119 @@ const verifyOperator = async (userId: string) => {
   );
 };
 
+const getOperatorStats = async () => {
+  const [total, active, suspended] = await Promise.all([
+    User.countDocuments({ role: USER_ROLES.OPERATOR }),
+    User.countDocuments({
+      role: USER_ROLES.OPERATOR,
+      status: USER_STATUS.ACTIVE,
+    }),
+    User.countDocuments({
+      role: USER_ROLES.OPERATOR,
+      status: USER_STATUS.SUSPENDED,
+    }),
+  ]);
+  return { total, active, suspended };
+};
+
+const listOperatorsAdmin = async (query: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: USER_STATUS;
+  city?: string;
+}) => {
+  const page = Math.max(1, Number(query.page) || 1);
+  const limit = Math.max(1, Math.min(100, Number(query.limit) || 20));
+
+  const match: Record<string, unknown> = { role: USER_ROLES.OPERATOR };
+  if (query.status) match.status = query.status;
+  if (query.search) {
+    const regex = { $regex: query.search, $options: 'i' };
+    match.$or = [{ name: regex }, { phone: regex }];
+  }
+
+  const pipeline: PipelineStage[] = [{ $match: match }];
+
+  pipeline.push(
+    {
+      $lookup: {
+        from: 'operatorprofiles',
+        localField: '_id',
+        foreignField: 'userId',
+        as: 'profile',
+      },
+    },
+    { $unwind: { path: '$profile', preserveNullAndEmptyArrays: true } }
+  );
+
+  if (query.city) {
+    pipeline.push({ $match: { 'profile.city': query.city } });
+  }
+
+  pipeline.push(
+    { $sort: { createdAt: -1 } },
+    {
+      $facet: {
+        data: [
+          { $skip: (page - 1) * limit },
+          { $limit: limit },
+          {
+            $project: {
+              name: 1,
+              phone: 1,
+              status: 1,
+              createdAt: 1,
+              city: '$profile.city',
+              totalCalls: '$profile.totalCalls',
+              totalEarnings: '$profile.totalEarnings',
+              availabilityStatus: '$profile.availabilityStatus',
+            },
+          },
+        ],
+        totalCount: [{ $count: 'count' }],
+      },
+    }
+  );
+
+  const [result] = await User.aggregate(pipeline);
+  const operators = result?.data ?? [];
+  const total = result?.totalCount?.[0]?.count ?? 0;
+
+  return {
+    operators,
+    meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  };
+};
+
+const getOperatorDetail = async (id: string) => {
+  const user = await User.findOne({ _id: id, role: USER_ROLES.OPERATOR });
+  if (!user) {
+    throw new AppError(StatusCodes.NOT_FOUND, 'Operator not found');
+  }
+  const profile = await OperatorProfile.findOne({ userId: id });
+  return { ...user.toObject(), profile };
+};
+
+const suspendOperator = async (id: string, reason: string) => {
+  const user = await User.findOneAndUpdate(
+    { _id: id, role: USER_ROLES.OPERATOR },
+    { status: USER_STATUS.SUSPENDED, suspensionReason: reason },
+    { new: true }
+  );
+  if (!user) {
+    throw new AppError(StatusCodes.NOT_FOUND, 'Operator not found');
+  }
+  return user;
+};
+
 export const OperatorService = {
   inviteOperator,
   validateInvitation,
   operatorSignup,
   verifyOperator,
+  getOperatorStats,
+  listOperatorsAdmin,
+  getOperatorDetail,
+  suspendOperator,
 };

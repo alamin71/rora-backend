@@ -1,11 +1,13 @@
 import { CALL_STATUS } from '../../../enums/call';
 import { DISPUTE_STATUS } from '../../../enums/dispute';
 import { PAYOUT_STATUS } from '../../../enums/payout';
+import { KYC_STATUS } from '../../../enums/kyc';
 import { USER_ROLES } from '../../../enums/user';
 import { Call } from '../call/call.model';
 import { Dispute } from '../dispute/dispute.model';
 import { Payout } from '../payout/payout.model';
 import { User } from '../user/user.model';
+import { Kyc } from '../user/kyc.model';
 
 const daysAgo = (n: number) => {
   const d = new Date();
@@ -68,6 +70,14 @@ const getDashboard = async () => {
     Payout.countDocuments({ status: PAYOUT_STATUS.PENDING }),
   ]);
 
+  const [newKycSubmissions, accountsUnderReview] = await Promise.all([
+    Kyc.countDocuments({
+      status: KYC_STATUS.PENDING,
+      createdAt: { $gte: sevenDaysAgo },
+    }),
+    Kyc.countDocuments({ status: KYC_STATUS.PENDING }),
+  ]);
+
   return {
     totalCustomers,
     totalOperators,
@@ -85,6 +95,8 @@ const getDashboard = async () => {
     needsAttention: {
       openDisputes: openDisputesCount,
       pendingPayouts: pendingPayoutsCount,
+      newKycSubmissions,
+      accountsUnderReview,
     },
   };
 };
