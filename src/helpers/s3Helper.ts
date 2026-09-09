@@ -1,14 +1,23 @@
 import { S3Client } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
+import { NodeHttpHandler } from '@smithy/node-http-handler';
 import config from '../config';
 
 // S3 Client Configuration
+// Without an explicit requestHandler timeout, a bad region/bucket/blocked
+// network can leave uploadToS3() hanging for several minutes instead of
+// failing fast — the SDK's default is no timeout at all.
 const s3Client = new S3Client({
   region: config.aws.region,
   credentials: {
     accessKeyId: config.aws.access_key_id as string,
     secretAccessKey: config.aws.secret_access_key as string,
   },
+  maxAttempts: 2,
+  requestHandler: new NodeHttpHandler({
+    connectionTimeout: 5000,
+    requestTimeout: 15000,
+  }),
 });
 
 // Upload file to S3
