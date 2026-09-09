@@ -37,7 +37,10 @@ export const uploadToS3 = async (
       Key: fileName,
       Body: file.buffer,
       ContentType: file.mimetype,
-      ACL: 'public-read', // Make file publicly accessible
+      // No ACL here — buckets created with the modern "Bucket owner
+      // enforced" object ownership setting reject any ACL on the object
+      // (throws "The bucket does not allow ACLs"). Public read must come
+      // from a bucket policy instead.
     },
   });
 
