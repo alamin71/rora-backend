@@ -124,6 +124,16 @@ const suspendOperator = catchAsync(async (req, res) => {
   });
 });
 
+const activateOperator = catchAsync(async (req, res) => {
+  const result = await OperatorService.activateOperator(req.params.id);
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Operator activated successfully',
+    data: result,
+  });
+});
+
 export const OperatorController = {
   inviteOperator,
   getInvitation,
@@ -133,4 +143,5 @@ export const OperatorController = {
   listOperatorsAdmin,
   getOperatorDetail,
   suspendOperator,
+  activateOperator,
 };

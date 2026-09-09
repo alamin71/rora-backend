@@ -68,6 +68,11 @@ router.patch(
   UserController.suspendCustomer
 );
 router.patch(
+  '/admin/:id/activate',
+  adminOnly,
+  UserController.activateCustomer
+);
+router.patch(
   '/admin/:id/mark-distributor',
   adminOnly,
   validateRequest(UserValidation.markAsDistributorZodSchema),

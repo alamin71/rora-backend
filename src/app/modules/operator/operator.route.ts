@@ -36,6 +36,11 @@ router.patch(
   validateRequest(OperatorValidation.suspendOperatorZodSchema),
   OperatorController.suspendOperator
 );
+router.patch(
+  '/admin/:id/activate',
+  adminOnly,
+  OperatorController.activateOperator
+);
 
 // Public — reached before the operator has an account
 router.get('/invitation/:code', OperatorController.getInvitation);

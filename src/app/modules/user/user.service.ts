@@ -230,6 +230,18 @@ const suspendCustomer = async (id: string, reason: string) => {
   return user;
 };
 
+const activateCustomer = async (id: string) => {
+  const user = await User.findOneAndUpdate(
+    { _id: id, role: USER_ROLES.USER },
+    { status: USER_STATUS.ACTIVE, $unset: { suspensionReason: 1 } },
+    { new: true }
+  );
+  if (!user) {
+    throw new AppError(StatusCodes.NOT_FOUND, 'Customer not found');
+  }
+  return user;
+};
+
 const markAsDistributor = async (
   id: string,
   payload: { monthlyIssuanceLimit?: number; commissionRatePercent?: number }
@@ -262,5 +274,6 @@ export const UserService = {
   listCustomersAdmin,
   getCustomerDetail,
   suspendCustomer,
+  activateCustomer,
   markAsDistributor,
 };

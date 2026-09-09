@@ -200,14 +200,23 @@ const sendBroadcast = async (
   return notification;
 };
 
-const listNotifications = async (query: { page?: number; limit?: number }) => {
+const listNotifications = async (query: {
+  page?: number;
+  limit?: number;
+  status?: NOTIFICATION_STATUS;
+  audience?: NOTIFICATION_AUDIENCE;
+}) => {
   const page = Math.max(1, Number(query.page) || 1);
   const limit = Math.max(1, Math.min(100, Number(query.limit) || 20));
   const skip = (page - 1) * limit;
 
+  const filter: Record<string, unknown> = {};
+  if (query.status) filter.status = query.status;
+  if (query.audience) filter.audience = query.audience;
+
   const [notifications, total] = await Promise.all([
-    Notification.find().sort({ createdAt: -1 }).skip(skip).limit(limit),
-    Notification.countDocuments(),
+    Notification.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+    Notification.countDocuments(filter),
   ]);
 
   return {

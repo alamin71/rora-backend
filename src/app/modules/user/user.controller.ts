@@ -135,6 +135,16 @@ const suspendCustomer = catchAsync(async (req, res) => {
   });
 });
 
+const activateCustomer = catchAsync(async (req, res) => {
+  const result = await UserService.activateCustomer(req.params.id);
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Customer activated successfully',
+    data: result,
+  });
+});
+
 const markAsDistributor = catchAsync(async (req, res) => {
   const result = await UserService.markAsDistributor(req.params.id, req.body);
   sendResponse(res, {
@@ -153,5 +163,6 @@ export const UserController = {
   listCustomersAdmin,
   getCustomerDetail,
   suspendCustomer,
+  activateCustomer,
   markAsDistributor,
 };

@@ -302,6 +302,18 @@ const suspendOperator = async (id: string, reason: string) => {
   return user;
 };
 
+const activateOperator = async (id: string) => {
+  const user = await User.findOneAndUpdate(
+    { _id: id, role: USER_ROLES.OPERATOR },
+    { status: USER_STATUS.ACTIVE, $unset: { suspensionReason: 1 } },
+    { new: true }
+  );
+  if (!user) {
+    throw new AppError(StatusCodes.NOT_FOUND, 'Operator not found');
+  }
+  return user;
+};
+
 export const OperatorService = {
   inviteOperator,
   validateInvitation,
@@ -311,4 +323,5 @@ export const OperatorService = {
   listOperatorsAdmin,
   getOperatorDetail,
   suspendOperator,
+  activateOperator,
 };
