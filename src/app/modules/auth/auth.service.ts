@@ -393,7 +393,11 @@ const refreshToken = async (token: string) => {
   if (!activeUser) {
     throw new AppError(StatusCodes.NOT_FOUND, 'User not found');
   }
-  if (activeUser.status !== USER_STATUS.ACTIVE) {
+  if (
+    activeUser.status === USER_STATUS.BLOCKED ||
+    activeUser.status === USER_STATUS.SUSPENDED ||
+    activeUser.status === USER_STATUS.PENDING_VERIFICATION
+  ) {
     throw new AppError(StatusCodes.FORBIDDEN, 'User account is inactive');
   }
   if (!activeUser.verified) {

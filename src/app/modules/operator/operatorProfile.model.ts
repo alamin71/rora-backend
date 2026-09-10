@@ -24,6 +24,10 @@ const operatorProfileSchema = new Schema<
       type: [String],
       default: [],
     },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
     availabilityStatus: {
       type: String,
       enum: Object.values(OPERATOR_AVAILABILITY),

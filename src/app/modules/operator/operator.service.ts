@@ -189,11 +189,11 @@ const verifyOperator = async (userId: string) => {
     );
   }
 
-  return User.findByIdAndUpdate(
-    userId,
-    { status: USER_STATUS.ACTIVE },
-    { new: true }
-  );
+  const [updatedUser] = await Promise.all([
+    User.findByIdAndUpdate(userId, { status: USER_STATUS.VERIFIED }, { new: true }),
+    OperatorProfile.findOneAndUpdate({ userId }, { isVerified: true }),
+  ]);
+  return updatedUser;
 };
 
 const getOperatorStats = async () => {
@@ -201,7 +201,7 @@ const getOperatorStats = async () => {
     User.countDocuments({ role: USER_ROLES.OPERATOR }),
     User.countDocuments({
       role: USER_ROLES.OPERATOR,
-      status: USER_STATUS.ACTIVE,
+      status: USER_STATUS.VERIFIED,
     }),
     User.countDocuments({
       role: USER_ROLES.OPERATOR,
@@ -261,6 +261,7 @@ const listOperatorsAdmin = async (query: {
               status: 1,
               createdAt: 1,
               city: '$profile.city',
+              isVerified: '$profile.isVerified',
               totalCalls: '$profile.totalCalls',
               totalEarnings: '$profile.totalEarnings',
               availabilityStatus: '$profile.availabilityStatus',
@@ -304,9 +305,11 @@ const suspendOperator = async (id: string, reason: string) => {
 };
 
 const activateOperator = async (id: string) => {
+  // A verified operator being reinstated goes back to VERIFIED, not ACTIVE —
+  // ACTIVE would silently drop the "admin has confirmed identity" signal.
   const user = await User.findOneAndUpdate(
     { _id: id, role: USER_ROLES.OPERATOR },
-    { status: USER_STATUS.ACTIVE, $unset: { suspensionReason: 1 } },
+    { status: USER_STATUS.VERIFIED, $unset: { suspensionReason: 1 } },
     { new: true }
   );
   if (!user) {
