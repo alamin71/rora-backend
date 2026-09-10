@@ -201,7 +201,7 @@ const getOperatorStats = async () => {
     User.countDocuments({ role: USER_ROLES.OPERATOR }),
     User.countDocuments({
       role: USER_ROLES.OPERATOR,
-      status: USER_STATUS.VERIFIED,
+      status: { $in: [USER_STATUS.VERIFIED, USER_STATUS.ACTIVE] },
     }),
     User.countDocuments({
       role: USER_ROLES.OPERATOR,
@@ -305,11 +305,13 @@ const suspendOperator = async (id: string, reason: string) => {
 };
 
 const activateOperator = async (id: string) => {
-  // A verified operator being reinstated goes back to VERIFIED, not ACTIVE —
-  // ACTIVE would silently drop the "admin has confirmed identity" signal.
+  // Reinstating after a suspension goes to ACTIVE, not back to VERIFIED —
+  // "verified" is reserved for the one-time admin identity-check moment.
+  // The identity-check signal itself lives on OperatorProfile.isVerified,
+  // which this never touches, so it survives suspend/activate cycles.
   const user = await User.findOneAndUpdate(
     { _id: id, role: USER_ROLES.OPERATOR },
-    { status: USER_STATUS.VERIFIED, $unset: { suspensionReason: 1 } },
+    { status: USER_STATUS.ACTIVE, $unset: { suspensionReason: 1 } },
     { new: true }
   );
   if (!user) {
