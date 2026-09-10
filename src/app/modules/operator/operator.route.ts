@@ -51,15 +51,15 @@ router.post(
 );
 
 // ============================================
-// Operator self-profile — city/phone numbers (separate from the generic
-// /users/profile, which only touches name/email/image on the User document,
-// not OperatorProfile fields). Avatar image updates go through
-// PATCH /users/profile like every other role.
+// Operator self-profile — merges User + OperatorProfile. PATCH is
+// form-data (like signup) so city/phoneNumbers/image can all be updated
+// together in one call.
 // ============================================
 router.get('/profile', operatorOnly, OperatorController.getOwnProfile);
 router.patch(
   '/profile',
   operatorOnly,
+  fileUploadHandler.fields([{ name: 'image', maxCount: 1 }]),
   OperatorController.updateOwnProfile
 );
 

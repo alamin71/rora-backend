@@ -317,22 +317,27 @@ const activateOperator = async (id: string) => {
 
 const updateOwnProfile = async (
   userId: string,
-  payload: { city?: string; phoneNumbers?: string[] }
+  payload: { city?: string; phoneNumbers?: string[]; imageUrl?: string }
 ) => {
-  const update: Record<string, unknown> = {};
-  if (payload.city !== undefined) update.city = payload.city;
+  const profileUpdate: Record<string, unknown> = {};
+  if (payload.city !== undefined) profileUpdate.city = payload.city;
   if (payload.phoneNumbers !== undefined)
-    update.phoneNumbers = payload.phoneNumbers;
+    profileUpdate.phoneNumbers = payload.phoneNumbers;
 
-  const profile = await OperatorProfile.findOneAndUpdate(
-    { userId },
-    update,
-    { new: true }
-  );
+  const [profile] = await Promise.all([
+    Object.keys(profileUpdate).length
+      ? OperatorProfile.findOneAndUpdate({ userId }, profileUpdate, {
+          new: true,
+        })
+      : OperatorProfile.findOne({ userId }),
+    payload.imageUrl !== undefined
+      ? User.findByIdAndUpdate(userId, { image: payload.imageUrl })
+      : Promise.resolve(null),
+  ]);
   if (!profile) {
     throw new AppError(StatusCodes.NOT_FOUND, 'Operator profile not found');
   }
-  return profile;
+  return getOperatorDetail(userId);
 };
 
 export const OperatorService = {

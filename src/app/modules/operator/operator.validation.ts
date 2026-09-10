@@ -28,8 +28,17 @@ const suspendOperatorZodSchema = z.object({
   }),
 });
 
+// Same shape as signup — sent as the JSON-encoded "data" field alongside the
+// optional image file, parsed and validated by hand in the controller (not
+// via validateRequest, since the real body lives inside that one string field).
+const updateOwnProfileZodSchema = z.object({
+  city: z.string().nonempty({ message: 'City is required' }).optional(),
+  phoneNumbers: z.array(z.string()).optional(),
+});
+
 export const OperatorValidation = {
   inviteOperatorZodSchema,
   operatorSignupZodSchema,
   suspendOperatorZodSchema,
+  updateOwnProfileZodSchema,
 };

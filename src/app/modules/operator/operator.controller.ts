@@ -145,11 +145,28 @@ const getOwnProfile = catchAsync(async (req, res) => {
 });
 
 const updateOwnProfile = catchAsync(async (req, res) => {
-  const { city, phoneNumbers } = req.body;
+  let payload: Record<string, unknown>;
+  try {
+    payload = JSON.parse(req.body.data);
+  } catch (error) {
+    throw new AppError(
+      StatusCodes.BAD_REQUEST,
+      'Invalid update data — expected a JSON "data" field'
+    );
+  }
+  const parsed = OperatorValidation.updateOwnProfileZodSchema.parse(payload);
+
+  const files = req.files as
+    | { [fieldname: string]: Express.Multer.File[] }
+    | undefined;
+  const imageFile = files?.image?.[0];
+  const imageUrl = imageFile
+    ? await uploadToS3(imageFile, 'operator/images')
+    : undefined;
 
   const result = await OperatorService.updateOwnProfile(req.user.id, {
-    city,
-    phoneNumbers,
+    ...parsed,
+    imageUrl,
   });
 
   sendResponse(res, {
