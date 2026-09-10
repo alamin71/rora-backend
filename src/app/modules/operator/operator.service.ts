@@ -97,7 +97,7 @@ const operatorSignup = async (payload: {
   city: string;
   password: string;
   phoneNumbers?: string[];
-  selfieUrl?: string;
+  imageUrl?: string;
 }) => {
   const { code, phone } = payload;
 
@@ -139,13 +139,13 @@ const operatorSignup = async (payload: {
     password: payload.password,
     role: USER_ROLES.OPERATOR,
     status: USER_STATUS.PENDING_VERIFICATION,
+    image: payload.imageUrl,
   });
 
   await OperatorProfile.create({
     userId: user._id,
     city: payload.city,
     phoneNumbers: payload.phoneNumbers || [],
-    selfieUrl: payload.selfieUrl,
   });
 
   invitation.status = INVITATION_STATUS.USED;
@@ -257,6 +257,7 @@ const listOperatorsAdmin = async (query: {
             $project: {
               name: 1,
               phone: 1,
+              image: 1,
               status: 1,
               createdAt: 1,
               city: '$profile.city',
@@ -314,6 +315,26 @@ const activateOperator = async (id: string) => {
   return user;
 };
 
+const updateOwnProfile = async (
+  userId: string,
+  payload: { city?: string; phoneNumbers?: string[] }
+) => {
+  const update: Record<string, unknown> = {};
+  if (payload.city !== undefined) update.city = payload.city;
+  if (payload.phoneNumbers !== undefined)
+    update.phoneNumbers = payload.phoneNumbers;
+
+  const profile = await OperatorProfile.findOneAndUpdate(
+    { userId },
+    update,
+    { new: true }
+  );
+  if (!profile) {
+    throw new AppError(StatusCodes.NOT_FOUND, 'Operator profile not found');
+  }
+  return profile;
+};
+
 export const OperatorService = {
   inviteOperator,
   validateInvitation,
@@ -324,4 +345,5 @@ export const OperatorService = {
   getOperatorDetail,
   suspendOperator,
   activateOperator,
+  updateOwnProfile,
 };

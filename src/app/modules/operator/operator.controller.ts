@@ -49,15 +49,15 @@ const operatorSignup = catchAsync(async (req, res) => {
   const files = req.files as
     | { [fieldname: string]: Express.Multer.File[] }
     | undefined;
-  const selfieFile = files?.selfie?.[0];
-  const selfieUrl = selfieFile
-    ? await uploadToS3(selfieFile, 'operator/selfies')
+  const imageFile = files?.image?.[0];
+  const imageUrl = imageFile
+    ? await uploadToS3(imageFile, 'operator/images')
     : undefined;
 
   const result = await OperatorService.operatorSignup({
     ...parsed,
     phone: normalizePhone(countryCode, phone),
-    selfieUrl,
+    imageUrl,
   });
 
   sendResponse(res, {
@@ -134,6 +134,32 @@ const activateOperator = catchAsync(async (req, res) => {
   });
 });
 
+const getOwnProfile = catchAsync(async (req, res) => {
+  const result = await OperatorService.getOperatorDetail(req.user.id);
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Profile retrieved successfully',
+    data: result,
+  });
+});
+
+const updateOwnProfile = catchAsync(async (req, res) => {
+  const { city, phoneNumbers } = req.body;
+
+  const result = await OperatorService.updateOwnProfile(req.user.id, {
+    city,
+    phoneNumbers,
+  });
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Profile updated successfully',
+    data: result,
+  });
+});
+
 export const OperatorController = {
   inviteOperator,
   getInvitation,
@@ -144,4 +170,6 @@ export const OperatorController = {
   getOperatorDetail,
   suspendOperator,
   activateOperator,
+  getOwnProfile,
+  updateOwnProfile,
 };

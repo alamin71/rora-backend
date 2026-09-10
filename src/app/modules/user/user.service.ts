@@ -172,6 +172,7 @@ const listCustomersAdmin = async (query: {
             $project: {
               name: 1,
               phone: 1,
+              image: 1,
               status: 1,
               createdAt: 1,
               balanceMinutes: '$wallet.balanceMinutes',

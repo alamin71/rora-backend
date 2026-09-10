@@ -127,7 +127,7 @@ const listAllPayouts = async (query: {
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .populate('operatorId', 'name phone'),
+      .populate('operatorId', 'name phone image'),
     Payout.countDocuments(filter),
   ]);
 
@@ -147,7 +147,7 @@ const exportPayoutsCsv = async (query: {
   const payouts = await Payout.find(filter)
     .sort({ createdAt: -1 })
     .limit(EXPORT_ROW_CAP)
-    .populate('operatorId', 'name phone');
+    .populate('operatorId', 'name phone image');
 
   const rows = payouts.map((p) => ({
     payoutRef: p.payoutRef,
@@ -173,7 +173,7 @@ const exportPayoutsCsv = async (query: {
 const getPayoutDetail = async (id: string) => {
   const payout = await Payout.findById(id).populate(
     'operatorId',
-    'name phone'
+    'name phone image'
   );
   if (!payout) {
     throw new AppError(StatusCodes.NOT_FOUND, 'Payout not found');

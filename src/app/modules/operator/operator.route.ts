@@ -46,8 +46,21 @@ router.patch(
 router.get('/invitation/:code', OperatorController.getInvitation);
 router.post(
   '/signup',
-  fileUploadHandler.fields([{ name: 'selfie', maxCount: 1 }]),
+  fileUploadHandler.fields([{ name: 'image', maxCount: 1 }]),
   OperatorController.operatorSignup
+);
+
+// ============================================
+// Operator self-profile — city/phone numbers (separate from the generic
+// /users/profile, which only touches name/email/image on the User document,
+// not OperatorProfile fields). Avatar image updates go through
+// PATCH /users/profile like every other role.
+// ============================================
+router.get('/profile', operatorOnly, OperatorController.getOwnProfile);
+router.patch(
+  '/profile',
+  operatorOnly,
+  OperatorController.updateOwnProfile
 );
 
 // ============================================

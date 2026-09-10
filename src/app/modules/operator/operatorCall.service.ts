@@ -36,7 +36,7 @@ const setAvailability = async (
 const getQueue = async () => {
   return Call.find({ status: CALL_STATUS.REQUESTED })
     .sort({ requestedAt: 1 })
-    .populate('customerId', 'name phone')
+    .populate('customerId', 'name phone image')
     .populate('destinationId', 'name');
 };
 
@@ -329,7 +329,7 @@ const getActiveCall = async (operatorId: string) => {
     operatorId,
     status: { $in: OPERATOR_ACTIVE_STATUSES },
   })
-    .populate('customerId', 'name phone')
+    .populate('customerId', 'name phone image')
     .populate('destinationId', 'name prefix');
   return call ? attachBillingInfo(call) : null;
 };
@@ -384,7 +384,7 @@ const getHistory = async (
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .populate('customerId', 'name phone'),
+      .populate('customerId', 'name phone image'),
     Call.countDocuments(filter),
     Call.aggregate([
       // aggregate() bypasses schema casting, unlike find()/countDocuments()

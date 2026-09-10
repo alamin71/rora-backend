@@ -48,7 +48,7 @@ const listKycAdmin = async (query: {
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .populate('userId', 'name phone'),
+      .populate('userId', 'name phone image'),
     Kyc.countDocuments(filter),
   ]);
 
@@ -59,7 +59,7 @@ const listKycAdmin = async (query: {
 };
 
 const getKycDetail = async (id: string) => {
-  const submission = await Kyc.findById(id).populate('userId', 'name phone');
+  const submission = await Kyc.findById(id).populate('userId', 'name phone image');
   if (!submission) {
     throw new AppError(StatusCodes.NOT_FOUND, 'KYC submission not found');
   }

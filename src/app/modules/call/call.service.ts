@@ -292,8 +292,8 @@ const listCallsAdmin = async (query: {
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .populate('customerId', 'name phone')
-      .populate('operatorId', 'name phone')
+      .populate('customerId', 'name phone image')
+      .populate('operatorId', 'name phone image')
       .populate('destinationId', 'name prefix'),
     Call.countDocuments(filter),
   ]);
@@ -315,8 +315,8 @@ const exportCallsCsv = async (query: {
   const calls = await Call.find(filter)
     .sort({ createdAt: -1 })
     .limit(CALL_EXPORT_ROW_CAP)
-    .populate('customerId', 'name phone')
-    .populate('operatorId', 'name phone')
+    .populate('customerId', 'name phone image')
+    .populate('operatorId', 'name phone image')
     .populate('destinationId', 'name');
 
   const rows = calls.map((c) => ({

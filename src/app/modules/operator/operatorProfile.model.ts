@@ -24,9 +24,6 @@ const operatorProfileSchema = new Schema<
       type: [String],
       default: [],
     },
-    selfieUrl: {
-      type: String,
-    },
     availabilityStatus: {
       type: String,
       enum: Object.values(OPERATOR_AVAILABILITY),

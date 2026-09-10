@@ -5,7 +5,6 @@ export type IOperatorProfile = {
   userId: Types.ObjectId;
   city: string;
   phoneNumbers: string[];
-  selfieUrl?: string;
   availabilityStatus: OPERATOR_AVAILABILITY;
   shiftStartedAt?: Date;
   ratingAvg: number;

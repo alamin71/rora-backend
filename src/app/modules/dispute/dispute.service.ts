@@ -66,8 +66,8 @@ const listDisputes = async (query: {
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .populate('customerId', 'name phone')
-      .populate('operatorId', 'name phone')
+      .populate('customerId', 'name phone image')
+      .populate('operatorId', 'name phone image')
       .populate('callId', 'callRef'),
     Dispute.countDocuments(filter),
   ]);
@@ -104,8 +104,8 @@ const getDisputeStats = async () => {
 
 const getDispute = async (disputeId: string) => {
   const dispute = await Dispute.findById(disputeId)
-    .populate('customerId', 'name phone')
-    .populate('operatorId', 'name phone')
+    .populate('customerId', 'name phone image')
+    .populate('operatorId', 'name phone image')
     .populate('callId');
   if (!dispute) {
     throw new AppError(StatusCodes.NOT_FOUND, 'Dispute not found');
