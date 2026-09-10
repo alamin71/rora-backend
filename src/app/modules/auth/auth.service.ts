@@ -43,7 +43,9 @@ const loginUserFromDB = async (payload: ILoginData) => {
 
     throw new AppError(
       StatusCodes.CONFLICT,
-      'Your phone number is not verified yet. A new OTP has been sent — please verify it, then try to login again.'
+      smsHelper.isConfigured()
+        ? 'Your phone number is not verified yet. A new OTP has been sent — please verify it, then try to login again.'
+        : `Your phone number is not verified yet. [DEV: ${otp}] Please verify it, then try to login again.`
     );
   }
 
