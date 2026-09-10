@@ -7,6 +7,8 @@ export type IDestination = {
   customerRatePerMin: number;
   operatorPayoutPerMin: number;
   status: DESTINATION_STATUS;
+  createdAt?: Date;
+  updatedAt?: Date;
 };
 
 export type DestinationModel = Model<IDestination>;

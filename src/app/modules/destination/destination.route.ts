@@ -26,6 +26,13 @@ router.patch(
   DestinationController.upsertExchangeRate
 );
 
+// Registered before /admin so the literal "stats" segment never gets
+// swallowed by a broader admin route.
+router.get(
+  '/admin/stats',
+  adminOnly,
+  DestinationController.getDestinationStats
+);
 router.get('/admin', adminOnly, DestinationController.getAllDestinationsAdmin);
 router.post(
   '/admin',

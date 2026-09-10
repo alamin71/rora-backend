@@ -26,6 +26,17 @@ const getAllDestinationsAdmin = catchAsync(async (req, res) => {
   });
 });
 
+const getDestinationStats = catchAsync(async (req, res) => {
+  const result = await DestinationService.getDestinationStats();
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Destination stats retrieved successfully',
+    data: result,
+  });
+});
+
 const createDestination = catchAsync(async (req, res) => {
   const result = await DestinationService.createDestination(req.body);
 
@@ -105,6 +116,7 @@ const upsertExchangeRate = catchAsync(async (req, res) => {
 export const DestinationController = {
   getActiveDestinations,
   getAllDestinationsAdmin,
+  getDestinationStats,
   createDestination,
   updateDestination,
   updateDestinationStatus,

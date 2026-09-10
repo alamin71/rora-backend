@@ -54,6 +54,31 @@ const listAllDestinationsForAdmin = async () => {
   }));
 };
 
+const getDestinationStats = async () => {
+  const [activeDestinations, allDestinations, mostRecent] = await Promise.all([
+    Destination.countDocuments({ status: DESTINATION_STATUS.ACTIVE }),
+    Destination.find().select('customerRatePerMin operatorPayoutPerMin'),
+    Destination.findOne().sort({ updatedAt: -1 }).select('updatedAt'),
+  ]);
+
+  const avgMarginPerMin = allDestinations.length
+    ? Number(
+        (
+          allDestinations.reduce(
+            (sum, d) => sum + (d.customerRatePerMin - d.operatorPayoutPerMin),
+            0
+          ) / allDestinations.length
+        ).toFixed(4)
+      )
+    : 0;
+
+  return {
+    activeDestinations,
+    avgMarginPerMin,
+    lastUpdatedAt: mostRecent?.updatedAt ?? null,
+  };
+};
+
 const createDestination = async (payload: IDestination) => {
   const existing = await Destination.findOne({ prefix: payload.prefix });
   if (existing) {
@@ -125,6 +150,7 @@ const upsertExchangeRate = async (
 export const DestinationService = {
   listActiveDestinations,
   listAllDestinationsForAdmin,
+  getDestinationStats,
   createDestination,
   updateDestination,
   updateDestinationStatus,
