@@ -190,7 +190,7 @@ const verifyOperator = async (userId: string) => {
   }
 
   const [updatedUser] = await Promise.all([
-    User.findByIdAndUpdate(userId, { status: USER_STATUS.VERIFIED }, { new: true }),
+    User.findByIdAndUpdate(userId, { status: USER_STATUS.ACTIVE }, { new: true }),
     OperatorProfile.findOneAndUpdate({ userId }, { isVerified: true }),
   ]);
   return updatedUser;
@@ -201,7 +201,7 @@ const getOperatorStats = async () => {
     User.countDocuments({ role: USER_ROLES.OPERATOR }),
     User.countDocuments({
       role: USER_ROLES.OPERATOR,
-      status: { $in: [USER_STATUS.VERIFIED, USER_STATUS.ACTIVE] },
+      status: USER_STATUS.ACTIVE,
     }),
     User.countDocuments({
       role: USER_ROLES.OPERATOR,
