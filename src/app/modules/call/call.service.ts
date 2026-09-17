@@ -8,6 +8,7 @@ import { socketHelper } from '../../../helpers/socketHelper';
 import { Destination } from '../destination/destination.model';
 import { OperatorProfile } from '../operator/operatorProfile.model';
 import { Wallet } from '../wallet/wallet.model';
+import { WalletTransaction } from '../wallet/walletTransaction.model';
 import { Call } from './call.model';
 import { CallRating } from './callRating.model';
 import toCsv from '../../../utils/toCsv';
@@ -151,7 +152,19 @@ const getCallById = async (userId: string, callId: string) => {
       "You don't have permission to view this call"
     );
   }
-  return call;
+
+  // The customer's balance right after this specific call, not their
+  // current live balance (which may have moved since via other calls or a
+  // recharge) — what a receipt screen actually needs.
+  const deduction = await WalletTransaction.findOne({
+    relatedCallId: call._id,
+    userId: call.customerId,
+  }).select('balanceAfter');
+
+  return {
+    ...call.toObject(),
+    balanceAfterCall: deduction?.balanceAfter ?? null,
+  };
 };
 
 const listCustomerCalls = async (
@@ -174,8 +187,21 @@ const listCustomerCalls = async (
     Call.countDocuments(filter),
   ]);
 
+  const deductions = await WalletTransaction.find({
+    relatedCallId: { $in: calls.map((c) => c._id) },
+    userId: customerId,
+  }).select('relatedCallId balanceAfter');
+  const balanceByCallId = new Map(
+    deductions.map((d) => [d.relatedCallId!.toString(), d.balanceAfter])
+  );
+
+  const callsWithBalance = calls.map((c) => ({
+    ...c.toObject(),
+    balanceAfterCall: balanceByCallId.get(c._id.toString()) ?? null,
+  }));
+
   return {
-    calls,
+    calls: callsWithBalance,
     meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
   };
 };

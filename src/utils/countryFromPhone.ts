@@ -16,4 +16,15 @@ const countryFromPhone = (phone: string): string => {
   return match ? match[1] : 'Other';
 };
 
+// Same lookup, but also returns the matched dial code — for call-flow UI
+// that needs both (e.g. "Call Egypt Now" step labels).
+export const countryInfoFromPhone = (
+  phone: string
+): { code: string | null; name: string } => {
+  const match = PHONE_COUNTRY_PREFIXES.find(([prefix]) =>
+    phone.startsWith(prefix)
+  );
+  return match ? { code: match[0], name: match[1] } : { code: null, name: 'Other' };
+};
+
 export default countryFromPhone;

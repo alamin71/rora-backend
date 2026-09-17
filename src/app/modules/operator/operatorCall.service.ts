@@ -11,6 +11,27 @@ import { Destination } from '../destination/destination.model';
 import { Wallet } from '../wallet/wallet.model';
 import { WalletTransaction } from '../wallet/walletTransaction.model';
 import { OperatorProfile } from './operatorProfile.model';
+import { countryInfoFromPhone } from '../../../utils/countryFromPhone';
+
+// Both call-flow parties' country code/name — the destination side already
+// has this stored (Destination.name/prefix), the customer side is derived
+// from their phone since User has no stored country field. Lets the app
+// render step labels like "Call Egypt Now" without a second lookup.
+const enrichWithCountryInfo = (call: any) => {
+  const plain = typeof call.toObject === 'function' ? call.toObject() : call;
+  const customerPhone = plain.customerId?.phone;
+  const customerCountry = customerPhone
+    ? countryInfoFromPhone(customerPhone)
+    : { code: null, name: null };
+
+  return {
+    ...plain,
+    customerCountryCode: customerCountry.code,
+    customerCountryName: customerCountry.name,
+    destinationCountryCode: plain.destinationId?.prefix ?? null,
+    destinationCountryName: plain.destinationId?.name ?? null,
+  };
+};
 
 const setAvailability = async (
   operatorId: string,
@@ -34,10 +55,11 @@ const setAvailability = async (
 // Browsable list backing the "Live Queue" screen — every online operator sees
 // the same unassigned requests; POST /accept below is what makes it race-safe.
 const getQueue = async () => {
-  return Call.find({ status: CALL_STATUS.REQUESTED })
+  const calls = await Call.find({ status: CALL_STATUS.REQUESTED })
     .sort({ requestedAt: 1 })
     .populate('customerId', 'name phone image')
-    .populate('destinationId', 'name');
+    .populate('destinationId', 'name prefix');
+  return calls.map(enrichWithCountryInfo);
 };
 
 const recomputeAcceptanceRate = async (operatorId: string) => {
@@ -158,31 +180,13 @@ const transitionCall = async (
   return enrichedCall;
 };
 
-// Destination (Eritrea/Sudan) is dialed first, then the customer (Egypt) —
+// Customer (Egypt) is dialed first, then the destination (Eritrea/Sudan) —
 // per the operator app's stage order.
-const dialDestination = (operatorId: string, callId: string) =>
-  transitionCall(
-    operatorId,
-    callId,
-    [CALL_STATUS.ASSIGNED],
-    CALL_STATUS.DIALING_DESTINATION,
-    'destinationDialedAt'
-  );
-
-const destinationConnected = (operatorId: string, callId: string) =>
-  transitionCall(
-    operatorId,
-    callId,
-    [CALL_STATUS.DIALING_DESTINATION],
-    CALL_STATUS.DESTINATION_CONNECTED,
-    'destinationConnectedAt'
-  );
-
 const dialCustomer = (operatorId: string, callId: string) =>
   transitionCall(
     operatorId,
     callId,
-    [CALL_STATUS.DESTINATION_CONNECTED],
+    [CALL_STATUS.ASSIGNED],
     CALL_STATUS.DIALING_CUSTOMER,
     'customerDialedAt'
   );
@@ -196,12 +200,30 @@ const customerConnected = (operatorId: string, callId: string) =>
     'customerConnectedAt'
   );
 
+const dialDestination = (operatorId: string, callId: string) =>
+  transitionCall(
+    operatorId,
+    callId,
+    [CALL_STATUS.CUSTOMER_CONNECTED],
+    CALL_STATUS.DIALING_DESTINATION,
+    'destinationDialedAt'
+  );
+
+const destinationConnected = (operatorId: string, callId: string) =>
+  transitionCall(
+    operatorId,
+    callId,
+    [CALL_STATUS.DIALING_DESTINATION],
+    CALL_STATUS.DESTINATION_CONNECTED,
+    'destinationConnectedAt'
+  );
+
 // Merging the two live legs — this is where the billing clock starts
 const startConference = (operatorId: string, callId: string) =>
   transitionCall(
     operatorId,
     callId,
-    [CALL_STATUS.CUSTOMER_CONNECTED],
+    [CALL_STATUS.DESTINATION_CONNECTED],
     CALL_STATUS.CONFERENCING,
     'conferenceStartedAt'
   );
@@ -312,6 +334,47 @@ const markFailed = async (
   return call;
 };
 
+// Retries a failed call — resets it back to ASSIGNED (clearing the dial
+// timestamps/failure reason) so it goes through the normal dial flow again
+// on the same call record, rather than spinning up a new one. Keeps
+// callRef/history continuity so the app's "Redial" button on a past failed
+// call can just re-enter the step flow.
+const redialCall = async (operatorId: string, callId: string) => {
+  const call = await Call.findOne({ _id: callId, operatorId });
+  if (!call) {
+    throw new AppError(
+      StatusCodes.NOT_FOUND,
+      'Call not found or not assigned to you'
+    );
+  }
+  if (call.status !== CALL_STATUS.FAILED) {
+    throw new AppError(
+      StatusCodes.BAD_REQUEST,
+      `Only a failed call can be redialed (this call is "${call.status}")`
+    );
+  }
+
+  call.status = CALL_STATUS.ASSIGNED;
+  call.failureReason = undefined;
+  call.endedAt = undefined;
+  call.customerDialedAt = undefined;
+  call.customerConnectedAt = undefined;
+  call.destinationDialedAt = undefined;
+  call.destinationConnectedAt = undefined;
+  call.conferenceStartedAt = undefined;
+  await call.save();
+
+  await OperatorProfile.findOneAndUpdate(
+    { userId: operatorId },
+    { availabilityStatus: OPERATOR_AVAILABILITY.BUSY }
+  );
+
+  const enrichedCall = await attachBillingInfo(call);
+  socketHelper.emitToUser(call.customerId.toString(), 'call:update', enrichedCall);
+  socketHelper.emitToUser(operatorId, 'call:update', enrichedCall);
+  return enrichedCall;
+};
+
 // The one call this operator is currently on, if any — lets the app recover
 // state after being closed/reopened mid-call, since an accepted call drops
 // out of the queue and its id isn't known to a freshly-launched app.
@@ -331,18 +394,18 @@ const getActiveCall = async (operatorId: string) => {
   })
     .populate('customerId', 'name phone image')
     .populate('destinationId', 'name prefix');
-  return call ? attachBillingInfo(call) : null;
+  if (!call) return null;
+  return enrichWithCountryInfo(await attachBillingInfo(call));
 };
 
 const getOperatorCall = async (operatorId: string, callId: string) => {
-  const call = await Call.findOne({ _id: callId, operatorId }).populate(
-    'destinationId',
-    'name prefix'
-  );
+  const call = await Call.findOne({ _id: callId, operatorId })
+    .populate('customerId', 'name phone image')
+    .populate('destinationId', 'name prefix');
   if (!call) {
     throw new AppError(StatusCodes.NOT_FOUND, 'Call not found');
   }
-  return attachBillingInfo(call);
+  return enrichWithCountryInfo(await attachBillingInfo(call));
 };
 
 // "Today" tab's boundary always starts fresh; "Weekly"/"Monthly" reuse the
@@ -384,7 +447,8 @@ const getHistory = async (
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .populate('customerId', 'name phone image'),
+      .populate('customerId', 'name phone image')
+      .populate('destinationId', 'name prefix'),
     Call.countDocuments(filter),
     Call.aggregate([
       // aggregate() bypasses schema casting, unlike find()/countDocuments()
@@ -412,7 +476,7 @@ const getHistory = async (
       Minutes: summary[0]?.totalMinutes ?? 0,
       Earnings: summary[0]?.totalEarnings ?? 0,
     },
-    calls,
+    calls: calls.map(enrichWithCountryInfo),
     meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
   };
 };
@@ -511,6 +575,7 @@ export const OperatorCallService = {
   startConference,
   endCall,
   markFailed,
+  redialCall,
   getOperatorCall,
   getHistory,
   getEarnings,

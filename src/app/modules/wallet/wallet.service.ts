@@ -43,6 +43,33 @@ const getWalletTransactions = async (
   };
 };
 
+// Lets the app show the recipient's name on the "Confirm Transfer" screen
+// before the sender commits — same match rules as transferMinutes below, so
+// a lookup that succeeds here is guaranteed to also succeed there.
+const lookupRecipient = async (fromUserId: string, phone: string) => {
+  if (!phone) {
+    throw new AppError(StatusCodes.BAD_REQUEST, 'phone query param is required');
+  }
+
+  const recipient = await User.findOne({
+    phone,
+    role: USER_ROLES.USER,
+  }).select('name phone');
+  if (!recipient) {
+    throw new AppError(
+      StatusCodes.NOT_FOUND,
+      'No RORA customer found with that phone number'
+    );
+  }
+  if (recipient._id.toString() === fromUserId) {
+    throw new AppError(
+      StatusCodes.BAD_REQUEST,
+      'You cannot transfer minutes to yourself'
+    );
+  }
+  return { name: recipient.name, phone: recipient.phone };
+};
+
 // Peer-to-peer minute transfer — the same mechanism a distributor uses to
 // re-issue minutes to end customers, since a distributor is just a Wallet
 // with isDistributor=true, not a separate transfer kind.
@@ -370,6 +397,7 @@ const getDistributorTransferHistory = async (query: {
 export const WalletService = {
   getWalletBalance,
   getWalletTransactions,
+  lookupRecipient,
   transferMinutes,
   adminGrantMinutes,
   getDistributorStats,

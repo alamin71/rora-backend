@@ -28,6 +28,20 @@ const getTransactions = catchAsync(async (req, res) => {
   });
 });
 
+const lookupRecipient = catchAsync(async (req, res) => {
+  const result = await WalletService.lookupRecipient(
+    req.user.id,
+    req.query.phone as string
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Recipient found',
+    data: result,
+  });
+});
+
 const transfer = catchAsync(async (req, res) => {
   const result = await WalletService.transferMinutes(req.user.id, req.body);
 
@@ -84,6 +98,7 @@ const getDistributorTransfers = catchAsync(async (req, res) => {
 export const WalletController = {
   getBalance,
   getTransactions,
+  lookupRecipient,
   transfer,
   adminGrant,
   getDistributorReport,

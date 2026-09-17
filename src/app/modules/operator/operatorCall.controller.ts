@@ -142,6 +142,19 @@ const markFailed = catchAsync(async (req, res) => {
   });
 });
 
+const redialCall = catchAsync(async (req, res) => {
+  const result = await OperatorCallService.redialCall(
+    req.user.id,
+    req.params.id
+  );
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Call reset for redial',
+    data: result,
+  });
+});
+
 const getActiveCall = catchAsync(async (req, res) => {
   const result = await OperatorCallService.getActiveCall(req.user.id);
   sendResponse(res, {
@@ -210,6 +223,7 @@ export const OperatorCallController = {
   startConference,
   endCall,
   markFailed,
+  redialCall,
   getOperatorCall,
   getHistory,
   getEarnings,

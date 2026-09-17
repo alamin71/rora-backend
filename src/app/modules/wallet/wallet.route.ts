@@ -15,6 +15,11 @@ router.get(
   auth(USER_ROLES.USER),
   WalletController.getTransactions
 );
+router.get(
+  '/recipient-lookup',
+  auth(USER_ROLES.USER),
+  WalletController.lookupRecipient
+);
 router.post(
   '/transfer',
   auth(USER_ROLES.USER),

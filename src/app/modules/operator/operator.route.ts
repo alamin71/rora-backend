@@ -133,5 +133,10 @@ router.patch(
   validateRequest(OperatorCallValidation.markFailedZodSchema),
   OperatorCallController.markFailed
 );
+router.patch(
+  '/calls/:id/redial',
+  operatorOnly,
+  OperatorCallController.redialCall
+);
 
 export const OperatorRouter = router;
