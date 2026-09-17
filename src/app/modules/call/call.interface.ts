@@ -22,6 +22,7 @@ export type ICall = {
   conferenceStartedAt?: Date;
   endedAt?: Date;
   callLogVerified: boolean;
+  lowBalanceWarningSent: boolean;
 };
 
 export type CallModel = Model<ICall>;

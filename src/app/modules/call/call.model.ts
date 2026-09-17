@@ -64,6 +64,10 @@ const callSchema = new Schema<ICall, CallModel>(
       type: Boolean,
       default: false,
     },
+    lowBalanceWarningSent: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

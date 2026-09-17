@@ -12,6 +12,8 @@ import { Wallet } from '../wallet/wallet.model';
 import { WalletTransaction } from '../wallet/walletTransaction.model';
 import { OperatorProfile } from './operatorProfile.model';
 import { countryInfoFromPhone } from '../../../utils/countryFromPhone';
+import { DeviceToken } from '../notification/deviceToken.model';
+import { fcmHelper } from '../../../helpers/fcmHelper';
 
 // Both call-flow parties' country code/name — the destination side already
 // has this stored (Destination.name/prefix), the customer side is derived
@@ -92,6 +94,45 @@ const attachBillingInfo = async (call: any) => {
   };
 };
 
+// Client feedback: warn the operator the moment the customer they're on a
+// call with has 3 minutes or less left, so they can wrap up before the
+// balance runs out mid-conversation. Socket for an app that's open/connected,
+// FCM push as a backup for when it's backgrounded — which is expected here
+// since the operator is mid-call on their phone's native dialer, not
+// necessarily looking at the RORA app. Fires once per call (not once per
+// dial-step) via the lowBalanceWarningSent flag.
+const LOW_BALANCE_THRESHOLD_MINUTES = 3;
+
+const maybeSendLowBalanceWarning = async (
+  call: any,
+  customerBalanceMinutes: number,
+  operatorId: string
+) => {
+  if (
+    customerBalanceMinutes > LOW_BALANCE_THRESHOLD_MINUTES ||
+    call.lowBalanceWarningSent
+  ) {
+    return;
+  }
+
+  socketHelper.emitToUser(operatorId, 'call:low-balance-warning', {
+    callId: call._id.toString(),
+    customerBalanceMinutes,
+  });
+
+  const deviceTokens = await DeviceToken.find({ userId: operatorId }).select(
+    'token'
+  );
+  await fcmHelper.sendPushToTokens(
+    deviceTokens.map((d) => d.token),
+    'Low balance warning',
+    `Customer has ${customerBalanceMinutes} minute(s) left — wrap up the call soon.`
+  );
+
+  call.lowBalanceWarningSent = true;
+  await call.save();
+};
+
 const acceptCall = async (operatorId: string, callId: string) => {
   // Atomic — only the first operator to hit this wins the race
   const call = await Call.findOneAndUpdate(
@@ -116,6 +157,11 @@ const acceptCall = async (operatorId: string, callId: string) => {
   await recomputeAcceptanceRate(operatorId);
 
   const enrichedCall = await attachBillingInfo(call);
+  await maybeSendLowBalanceWarning(
+    call,
+    enrichedCall.customerBalanceMinutes,
+    operatorId
+  );
   socketHelper.emitToUser(call.customerId.toString(), 'call:update', enrichedCall);
   socketHelper.emitToUser(operatorId, 'call:update', enrichedCall);
   // Tell every other online operator's queue to drop this one
@@ -175,6 +221,11 @@ const transitionCall = async (
   await call.save();
 
   const enrichedCall = await attachBillingInfo(call);
+  await maybeSendLowBalanceWarning(
+    call,
+    enrichedCall.customerBalanceMinutes,
+    operatorId
+  );
   socketHelper.emitToUser(call.customerId.toString(), 'call:update', enrichedCall);
   socketHelper.emitToUser(operatorId, 'call:update', enrichedCall);
   return enrichedCall;
