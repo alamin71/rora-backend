@@ -51,8 +51,14 @@ const lookupRecipient = async (fromUserId: string, phone: string) => {
     throw new AppError(StatusCodes.BAD_REQUEST, 'phone query param is required');
   }
 
+  // A raw, un-percent-encoded "+" in a query string (e.g. a client that
+  // sends ?phone=+201094851880 without encoding it as %2B) arrives here
+  // decoded as a leading space, not a plus — every stored phone starts with
+  // "+", so this reverses that specific, common client-side mangling.
+  const normalizedPhone = phone.startsWith(' ') ? `+${phone.slice(1)}` : phone;
+
   const recipient = await User.findOne({
-    phone,
+    phone: normalizedPhone,
     role: USER_ROLES.USER,
   }).select('name phone');
   if (!recipient) {
