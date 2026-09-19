@@ -25,9 +25,14 @@ router.patch(
   OperatorController.verifyOperator
 );
 
-// Registered before /admin/:id so the literal "stats" segment never gets
-// swallowed by the :id wildcard.
+// Registered before /admin/:id so the literal "stats"/"invitations" segments
+// never get swallowed by the :id wildcard.
 router.get('/admin/stats', adminOnly, OperatorController.getOperatorStats);
+router.get(
+  '/admin/invitations',
+  adminOnly,
+  OperatorController.listInvitationsAdmin
+);
 router.get('/admin', adminOnly, OperatorController.listOperatorsAdmin);
 router.get('/admin/:id', adminOnly, OperatorController.getOperatorDetail);
 router.patch(

@@ -65,6 +65,39 @@ const inviteOperator = async (
   return invitation;
 };
 
+// Backs the admin dashboard's "pending invites" view — an Invitation only
+// becomes a User once the code is redeemed via signup, so this is the only
+// place a not-yet-signed-up invite is visible at all.
+const listInvitationsAdmin = async (query: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: INVITATION_STATUS;
+}) => {
+  const page = Math.max(1, Number(query.page) || 1);
+  const limit = Math.max(1, Math.min(100, Number(query.limit) || 20));
+
+  const filter: Record<string, unknown> = {};
+  if (query.status) filter.status = query.status;
+  if (query.search) {
+    const regex = { $regex: query.search, $options: 'i' };
+    filter.$or = [{ name: regex }, { phone: regex }, { code: regex }];
+  }
+
+  const [invitations, total] = await Promise.all([
+    Invitation.find(filter)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit),
+    Invitation.countDocuments(filter),
+  ]);
+
+  return {
+    invitations,
+    meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  };
+};
+
 const validateInvitation = async (code: string) => {
   const invitation = await Invitation.findOne({ code: code.toUpperCase() });
   if (!invitation) {
@@ -359,6 +392,7 @@ const updateOwnProfile = async (
 
 export const OperatorService = {
   inviteOperator,
+  listInvitationsAdmin,
   validateInvitation,
   operatorSignup,
   verifyOperator,

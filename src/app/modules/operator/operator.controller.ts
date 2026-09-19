@@ -21,6 +21,16 @@ const inviteOperator = catchAsync(async (req, res) => {
   });
 });
 
+const listInvitationsAdmin = catchAsync(async (req, res) => {
+  const result = await OperatorService.listInvitationsAdmin(req.query as never);
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Invitations retrieved successfully',
+    data: result,
+  });
+});
+
 const getInvitation = catchAsync(async (req, res) => {
   const result = await OperatorService.validateInvitation(req.params.code);
 
@@ -179,6 +189,7 @@ const updateOwnProfile = catchAsync(async (req, res) => {
 
 export const OperatorController = {
   inviteOperator,
+  listInvitationsAdmin,
   getInvitation,
   operatorSignup,
   verifyOperator,
