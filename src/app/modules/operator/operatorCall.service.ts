@@ -139,7 +139,9 @@ const acceptCall = async (operatorId: string, callId: string) => {
     { _id: callId, status: CALL_STATUS.REQUESTED },
     { status: CALL_STATUS.ASSIGNED, operatorId, acceptedAt: new Date() },
     { new: true }
-  );
+  )
+    .populate('customerId', 'name phone image')
+    .populate('destinationId', 'name prefix');
   if (!call) {
     throw new AppError(
       StatusCodes.BAD_REQUEST,
@@ -156,13 +158,14 @@ const acceptCall = async (operatorId: string, callId: string) => {
   );
   await recomputeAcceptanceRate(operatorId);
 
-  const enrichedCall = await attachBillingInfo(call);
+  const enrichedCall = enrichWithCountryInfo(await attachBillingInfo(call));
   await maybeSendLowBalanceWarning(
     call,
     enrichedCall.customerBalanceMinutes,
     operatorId
   );
-  socketHelper.emitToUser(call.customerId.toString(), 'call:update', enrichedCall);
+  const customerIdStr = ((call.customerId as any)?._id ?? call.customerId).toString();
+  socketHelper.emitToUser(customerIdStr, 'call:update', enrichedCall);
   socketHelper.emitToUser(operatorId, 'call:update', enrichedCall);
   // Tell every other online operator's queue to drop this one
   const onlineOperators = await OperatorProfile.find({
@@ -202,7 +205,9 @@ const transitionCall = async (
   toStatus: CALL_STATUS,
   timestampField: TimestampField
 ) => {
-  const call = await Call.findOne({ _id: callId, operatorId });
+  const call = await Call.findOne({ _id: callId, operatorId })
+    .populate('customerId', 'name phone image')
+    .populate('destinationId', 'name prefix');
   if (!call) {
     throw new AppError(
       StatusCodes.NOT_FOUND,
@@ -220,13 +225,14 @@ const transitionCall = async (
   call[timestampField] = new Date();
   await call.save();
 
-  const enrichedCall = await attachBillingInfo(call);
+  const enrichedCall = enrichWithCountryInfo(await attachBillingInfo(call));
   await maybeSendLowBalanceWarning(
     call,
     enrichedCall.customerBalanceMinutes,
     operatorId
   );
-  socketHelper.emitToUser(call.customerId.toString(), 'call:update', enrichedCall);
+  const customerIdStr = ((call.customerId as any)?._id ?? call.customerId).toString();
+  socketHelper.emitToUser(customerIdStr, 'call:update', enrichedCall);
   socketHelper.emitToUser(operatorId, 'call:update', enrichedCall);
   return enrichedCall;
 };
@@ -284,7 +290,9 @@ const endCall = async (
   callId: string,
   operatorSimUsed?: string
 ) => {
-  const call = await Call.findOne({ _id: callId, operatorId });
+  const call = await Call.findOne({ _id: callId, operatorId })
+    .populate('customerId', 'name phone image')
+    .populate('destinationId', 'name prefix customerRatePerMin operatorPayoutPerMin');
   if (!call) {
     throw new AppError(
       StatusCodes.NOT_FOUND,
@@ -298,7 +306,10 @@ const endCall = async (
     );
   }
 
-  const destination = await Destination.findById(call.destinationId);
+  const destinationId = ((call.destinationId as any)?._id ?? call.destinationId).toString();
+  const customerId = ((call.customerId as any)?._id ?? call.customerId).toString();
+
+  const destination = await Destination.findById(destinationId);
   if (!destination) {
     throw new AppError(StatusCodes.NOT_FOUND, 'Destination not found');
   }
@@ -322,7 +333,7 @@ const endCall = async (
 
   // The call already happened in the real world — deduct what's owed, but
   // never push the ledger negative even if the balance ran short mid-call.
-  const wallet = await Wallet.findOne({ userId: call.customerId });
+  const wallet = await Wallet.findOne({ userId: customerId });
   if (wallet) {
     const newBalance = Math.max(0, wallet.balanceMinutes - minutesUsed);
     const actuallyDeducted = wallet.balanceMinutes - newBalance;
@@ -330,7 +341,7 @@ const endCall = async (
     await wallet.save();
 
     await WalletTransaction.create({
-      userId: call.customerId,
+      userId: customerId,
       txRef: `TX-${Date.now()}-${call.callRef}`,
       type: WALLET_TRANSACTION_TYPE.CALL_DEDUCTION,
       minutes: -actuallyDeducted,
@@ -348,10 +359,11 @@ const endCall = async (
     }
   );
 
-  socketHelper.emitToUser(call.customerId.toString(), 'call:update', call);
-  socketHelper.emitToUser(operatorId, 'call:update', call);
+  const enrichedCall = enrichWithCountryInfo(call);
+  socketHelper.emitToUser(customerId, 'call:update', enrichedCall);
+  socketHelper.emitToUser(operatorId, 'call:update', enrichedCall);
 
-  return call;
+  return enrichedCall;
 };
 
 const markFailed = async (
@@ -359,7 +371,9 @@ const markFailed = async (
   callId: string,
   failureReason: CALL_FAILURE_REASON
 ) => {
-  const call = await Call.findOne({ _id: callId, operatorId });
+  const call = await Call.findOne({ _id: callId, operatorId })
+    .populate('customerId', 'name phone image')
+    .populate('destinationId', 'name prefix');
   if (!call) {
     throw new AppError(
       StatusCodes.NOT_FOUND,
@@ -380,9 +394,11 @@ const markFailed = async (
     { availabilityStatus: OPERATOR_AVAILABILITY.ONLINE }
   );
 
-  socketHelper.emitToUser(call.customerId.toString(), 'call:update', call);
-  socketHelper.emitToUser(operatorId, 'call:update', call);
-  return call;
+  const enrichedCall = enrichWithCountryInfo(call);
+  const customerIdStr = ((call.customerId as any)?._id ?? call.customerId).toString();
+  socketHelper.emitToUser(customerIdStr, 'call:update', enrichedCall);
+  socketHelper.emitToUser(operatorId, 'call:update', enrichedCall);
+  return enrichedCall;
 };
 
 // Retries a failed call — resets it back to ASSIGNED (clearing the dial
@@ -391,7 +407,9 @@ const markFailed = async (
 // callRef/history continuity so the app's "Redial" button on a past failed
 // call can just re-enter the step flow.
 const redialCall = async (operatorId: string, callId: string) => {
-  const call = await Call.findOne({ _id: callId, operatorId });
+  const call = await Call.findOne({ _id: callId, operatorId })
+    .populate('customerId', 'name phone image')
+    .populate('destinationId', 'name prefix');
   if (!call) {
     throw new AppError(
       StatusCodes.NOT_FOUND,
@@ -420,8 +438,9 @@ const redialCall = async (operatorId: string, callId: string) => {
     { availabilityStatus: OPERATOR_AVAILABILITY.BUSY }
   );
 
-  const enrichedCall = await attachBillingInfo(call);
-  socketHelper.emitToUser(call.customerId.toString(), 'call:update', enrichedCall);
+  const enrichedCall = enrichWithCountryInfo(await attachBillingInfo(call));
+  const customerIdStr = ((call.customerId as any)?._id ?? call.customerId).toString();
+  socketHelper.emitToUser(customerIdStr, 'call:update', enrichedCall);
   socketHelper.emitToUser(operatorId, 'call:update', enrichedCall);
   return enrichedCall;
 };
