@@ -24,6 +24,9 @@ const operatorProfileSchema = new Schema<
       type: [String],
       default: [],
     },
+    selfieUrl: {
+      type: String,
+    },
     isVerified: {
       type: Boolean,
       default: false,

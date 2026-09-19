@@ -49,15 +49,15 @@ const operatorSignup = catchAsync(async (req, res) => {
   const files = req.files as
     | { [fieldname: string]: Express.Multer.File[] }
     | undefined;
-  const imageFile = files?.image?.[0];
-  const imageUrl = imageFile
-    ? await uploadToS3(imageFile, 'operator/images')
+  const selfieFile = files?.selfie?.[0];
+  const selfieUrl = selfieFile
+    ? await uploadToS3(selfieFile, 'operator/selfies')
     : undefined;
 
   const result = await OperatorService.operatorSignup({
     ...parsed,
     phone: normalizePhone(countryCode, phone),
-    imageUrl,
+    selfieUrl,
   });
 
   sendResponse(res, {

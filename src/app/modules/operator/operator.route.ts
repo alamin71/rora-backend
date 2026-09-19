@@ -46,14 +46,16 @@ router.patch(
 router.get('/invitation/:code', OperatorController.getInvitation);
 router.post(
   '/signup',
-  fileUploadHandler.fields([{ name: 'image', maxCount: 1 }]),
+  fileUploadHandler.fields([{ name: 'selfie', maxCount: 1 }]),
   OperatorController.operatorSignup
 );
 
 // ============================================
-// Operator self-profile — merges User + OperatorProfile. PATCH is
-// form-data (like signup) so city/phoneNumbers/image can all be updated
-// together in one call.
+// Operator self-profile — merges User + OperatorProfile. GET returns the
+// selfie (OperatorProfile.selfieUrl, captured at signup for identity
+// verification) alongside the general avatar (User.image, updatable here).
+// PATCH is form-data (like signup) so city/phoneNumbers/image can all be
+// updated together in one call — does not touch the verification selfie.
 // ============================================
 router.get('/profile', operatorOnly, OperatorController.getOwnProfile);
 router.patch(

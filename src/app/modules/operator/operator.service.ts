@@ -97,7 +97,7 @@ const operatorSignup = async (payload: {
   city: string;
   password: string;
   phoneNumbers?: string[];
-  imageUrl?: string;
+  selfieUrl?: string;
 }) => {
   const { code, phone } = payload;
 
@@ -139,13 +139,13 @@ const operatorSignup = async (payload: {
     password: payload.password,
     role: USER_ROLES.OPERATOR,
     status: USER_STATUS.PENDING_VERIFICATION,
-    image: payload.imageUrl,
   });
 
   await OperatorProfile.create({
     userId: user._id,
     city: payload.city,
     phoneNumbers: payload.phoneNumbers || [],
+    selfieUrl: payload.selfieUrl,
   });
 
   invitation.status = INVITATION_STATUS.USED;
