@@ -253,6 +253,17 @@ const listOperatorsAdmin = async (query: {
         data: [
           { $skip: (page - 1) * limit },
           { $limit: limit },
+          // Only joined for the current page, not every matched operator —
+          // the invitation code they originally signed up with.
+          {
+            $lookup: {
+              from: 'invitations',
+              localField: '_id',
+              foreignField: 'usedByUserId',
+              as: 'invitation',
+            },
+          },
+          { $unwind: { path: '$invitation', preserveNullAndEmptyArrays: true } },
           {
             $project: {
               name: 1,
@@ -265,6 +276,7 @@ const listOperatorsAdmin = async (query: {
               totalCalls: '$profile.totalCalls',
               totalEarnings: '$profile.totalEarnings',
               availabilityStatus: '$profile.availabilityStatus',
+              invitationCode: '$invitation.code',
             },
           },
         ],
