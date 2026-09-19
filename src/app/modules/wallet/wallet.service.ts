@@ -9,6 +9,7 @@ import { WalletTransaction } from './walletTransaction.model';
 import { Transfer } from './transfer.model';
 import { TRANSFER_KIND } from '../../../enums/wallet';
 import countryFromPhone from '../../../utils/countryFromPhone';
+import { Call } from '../call/call.model';
 
 const generateTxRef = () =>
   `TX-${Date.now()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
@@ -348,10 +349,15 @@ const getTopDistributor = async () => {
   const user = await User.findById(top._id);
   if (!user) return null;
 
+  const calls = await Call.countDocuments({ customerId: user._id });
+
   return {
     id: user._id,
     name: user.name,
+    image: user.image,
+    phone: user.phone,
     country: countryFromPhone(user.phone),
+    calls,
     totalMinutesTransferred: top.totalMinutesTransferred,
     commission: Number(top.totalCommission.toFixed(2)),
     lastActivity: top.lastActivity,
