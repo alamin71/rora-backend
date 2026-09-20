@@ -14,6 +14,7 @@ import { OperatorProfile } from './operatorProfile.model';
 import { countryInfoFromPhone } from '../../../utils/countryFromPhone';
 import { DeviceToken } from '../notification/deviceToken.model';
 import { fcmHelper } from '../../../helpers/fcmHelper';
+import { logger } from '../../../shared/logger';
 
 // Both call-flow parties' country code/name — the destination side already
 // has this stored (Destination.name/prefix), the customer side is derived
@@ -388,6 +389,10 @@ const markFailed = async (
   call.failureReason = failureReason;
   call.endedAt = new Date();
   await call.save();
+
+  logger.warn(
+    `Call ${call.callRef} (${call._id}) marked FAILED by operator ${operatorId} — reason: ${failureReason}`
+  );
 
   await OperatorProfile.findOneAndUpdate(
     { userId: operatorId },

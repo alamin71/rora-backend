@@ -7,11 +7,13 @@ import { OPERATOR_AVAILABILITY } from '../../../enums/operator';
 import { socketHelper } from '../../../helpers/socketHelper';
 import { Destination } from '../destination/destination.model';
 import { OperatorProfile } from '../operator/operatorProfile.model';
+import { User } from '../user/user.model';
 import { Wallet } from '../wallet/wallet.model';
 import { WalletTransaction } from '../wallet/walletTransaction.model';
 import { Call } from './call.model';
 import { CallRating } from './callRating.model';
 import toCsv from '../../../utils/toCsv';
+import { logger } from '../../../shared/logger';
 
 const ACTIVE_STATUSES = [
   CALL_STATUS.REQUESTED,
@@ -117,9 +119,14 @@ const cancelCall = async (customerId: string, callId: string) => {
     );
   }
 
+  const statusBeforeCancel = call.status;
   call.status = CALL_STATUS.CANCELLED;
   call.endedAt = new Date();
   await call.save();
+
+  logger.warn(
+    `Call ${call.callRef} (${call._id}) CANCELLED by customer ${customerId} (was ${statusBeforeCancel})`
+  );
 
   if (call.operatorId) {
     // The operator was locked to this call (marked busy on accept) — free
@@ -280,7 +287,7 @@ const getCallStatsAdmin = async () => {
   };
 };
 
-const buildCallFilterAdmin = (query: {
+const buildCallFilterAdmin = async (query: {
   search?: string;
   status?: CALL_STATUS;
   days?: number;
@@ -288,9 +295,16 @@ const buildCallFilterAdmin = (query: {
   const filter: Record<string, unknown> = {};
   if (query.status) filter.status = query.status;
   if (query.search) {
+    const regex = { $regex: query.search, $options: 'i' };
+    // callRef/numberDialed live on Call itself; customer/operator name
+    // doesn't, so resolve matching Users first and OR their ids in too.
+    const matchingUsers = await User.find({ name: regex }).select('_id');
+    const matchingUserIds = matchingUsers.map((u) => u._id);
     filter.$or = [
-      { callRef: { $regex: query.search, $options: 'i' } },
-      { numberDialed: { $regex: query.search, $options: 'i' } },
+      { callRef: regex },
+      { numberDialed: regex },
+      { customerId: { $in: matchingUserIds } },
+      { operatorId: { $in: matchingUserIds } },
     ];
   }
   if (query.days) {
@@ -311,7 +325,7 @@ const listCallsAdmin = async (query: {
   const page = Math.max(1, Number(query.page) || 1);
   const limit = Math.max(1, Math.min(100, Number(query.limit) || 20));
 
-  const filter = buildCallFilterAdmin(query);
+  const filter = await buildCallFilterAdmin(query);
 
   const [calls, total] = await Promise.all([
     Call.find(filter)
@@ -337,7 +351,7 @@ const exportCallsCsv = async (query: {
   status?: CALL_STATUS;
   days?: number;
 }) => {
-  const filter = buildCallFilterAdmin(query);
+  const filter = await buildCallFilterAdmin(query);
   const calls = await Call.find(filter)
     .sort({ createdAt: -1 })
     .limit(CALL_EXPORT_ROW_CAP)
