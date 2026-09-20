@@ -44,14 +44,39 @@ const listActiveDestinations = async (currency?: string) => {
 };
 
 // Admin — every destination, active or disabled, with margin computed on read.
-const listAllDestinationsForAdmin = async () => {
-  const destinations = await Destination.find().sort({ createdAt: -1 });
-  return destinations.map((d) => ({
-    ...d.toObject(),
-    marginPerMin: Number(
-      (d.customerRatePerMin - d.operatorPayoutPerMin).toFixed(4)
-    ),
-  }));
+const listAllDestinationsForAdmin = async (query: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: DESTINATION_STATUS;
+}) => {
+  const page = Math.max(1, Number(query.page) || 1);
+  const limit = Math.max(1, Math.min(100, Number(query.limit) || 20));
+
+  const filter: Record<string, unknown> = {};
+  if (query.status) filter.status = query.status;
+  if (query.search) {
+    const regex = { $regex: query.search, $options: 'i' };
+    filter.$or = [{ name: regex }, { prefix: regex }];
+  }
+
+  const [destinations, total] = await Promise.all([
+    Destination.find(filter)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit),
+    Destination.countDocuments(filter),
+  ]);
+
+  return {
+    destinations: destinations.map((d) => ({
+      ...d.toObject(),
+      marginPerMin: Number(
+        (d.customerRatePerMin - d.operatorPayoutPerMin).toFixed(4)
+      ),
+    })),
+    meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  };
 };
 
 const getDestinationStats = async () => {

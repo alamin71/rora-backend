@@ -296,15 +296,21 @@ const buildCallFilterAdmin = async (query: {
   if (query.status) filter.status = query.status;
   if (query.search) {
     const regex = { $regex: query.search, $options: 'i' };
-    // callRef/numberDialed live on Call itself; customer/operator name
-    // doesn't, so resolve matching Users first and OR their ids in too.
-    const matchingUsers = await User.find({ name: regex }).select('_id');
+    // callRef/numberDialed live on Call itself; customer/operator/destination
+    // name doesn't, so resolve matching Users/Destinations first and OR
+    // their ids in too.
+    const [matchingUsers, matchingDestinations] = await Promise.all([
+      User.find({ name: regex }).select('_id'),
+      Destination.find({ name: regex }).select('_id'),
+    ]);
     const matchingUserIds = matchingUsers.map((u) => u._id);
+    const matchingDestinationIds = matchingDestinations.map((d) => d._id);
     filter.$or = [
       { callRef: regex },
       { numberDialed: regex },
       { customerId: { $in: matchingUserIds } },
       { operatorId: { $in: matchingUserIds } },
+      { destinationId: { $in: matchingDestinationIds } },
     ];
   }
   if (query.days) {

@@ -16,7 +16,9 @@ const getActiveDestinations = catchAsync(async (req, res) => {
 });
 
 const getAllDestinationsAdmin = catchAsync(async (req, res) => {
-  const result = await DestinationService.listAllDestinationsForAdmin();
+  const result = await DestinationService.listAllDestinationsForAdmin(
+    req.query as never
+  );
 
   sendResponse(res, {
     success: true,
