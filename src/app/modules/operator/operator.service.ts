@@ -297,6 +297,16 @@ const listOperatorsAdmin = async (query: {
             },
           },
           { $unwind: { path: '$invitation', preserveNullAndEmptyArrays: true } },
+          // Every payout this operator has ever requested — full records,
+          // not just a summary, per what the admin screen needs to show.
+          {
+            $lookup: {
+              from: 'payouts',
+              localField: '_id',
+              foreignField: 'operatorId',
+              as: 'payouts',
+            },
+          },
           {
             $project: {
               name: 1,
@@ -310,6 +320,7 @@ const listOperatorsAdmin = async (query: {
               totalEarnings: '$profile.totalEarnings',
               availabilityStatus: '$profile.availabilityStatus',
               invitationCode: '$invitation.code',
+              payouts: 1,
             },
           },
         ],
