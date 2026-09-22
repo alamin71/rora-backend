@@ -21,6 +21,21 @@ const inviteOperator = catchAsync(async (req, res) => {
   });
 });
 
+const createOperatorByAdmin = catchAsync(async (req, res) => {
+  const { countryCode, phone, ...rest } = req.body;
+  const result = await OperatorService.createOperatorByAdmin({
+    ...rest,
+    phone: normalizePhone(countryCode, phone),
+  });
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Operator account created successfully',
+    data: result,
+  });
+});
+
 const listInvitationsAdmin = catchAsync(async (req, res) => {
   const result = await OperatorService.listInvitationsAdmin(req.query as never);
   sendResponse(res, {
@@ -189,6 +204,7 @@ const updateOwnProfile = catchAsync(async (req, res) => {
 
 export const OperatorController = {
   inviteOperator,
+  createOperatorByAdmin,
   listInvitationsAdmin,
   getInvitation,
   operatorSignup,

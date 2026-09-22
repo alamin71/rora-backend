@@ -19,6 +19,12 @@ router.post(
   validateRequest(OperatorValidation.inviteOperatorZodSchema),
   OperatorController.inviteOperator
 );
+router.post(
+  '/admin/create',
+  adminOnly,
+  validateRequest(OperatorValidation.createOperatorByAdminZodSchema),
+  OperatorController.createOperatorByAdmin
+);
 router.patch(
   '/admin/:id/verify',
   adminOnly,

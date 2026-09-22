@@ -65,6 +65,46 @@ const inviteOperator = async (
   return invitation;
 };
 
+// Manual account creation, mirroring the same admin-create for customers —
+// for operators the admin has already vetted out of band (in person, over
+// the phone). Skips both gates a normal invite→signup→verify chain has:
+// User.verified (OTP) and OperatorProfile.isVerified (admin identity/bank
+// check) are both set true directly, so the operator can log in and start
+// taking calls immediately with the password the admin sets here.
+const createOperatorByAdmin = async (payload: {
+  name: string;
+  phone: string;
+  password: string;
+  city: string;
+  phoneNumbers?: string[];
+}) => {
+  const existingUser = await User.findOne({ phone: payload.phone });
+  if (existingUser) {
+    throw new AppError(
+      StatusCodes.BAD_REQUEST,
+      'An account with this phone number already exists'
+    );
+  }
+
+  const user = await User.create({
+    name: payload.name,
+    phone: payload.phone,
+    password: payload.password,
+    role: USER_ROLES.OPERATOR,
+    status: USER_STATUS.ACTIVE,
+    verified: true,
+  });
+
+  await OperatorProfile.create({
+    userId: user._id,
+    city: payload.city,
+    phoneNumbers: payload.phoneNumbers || [],
+    isVerified: true,
+  });
+
+  return getOperatorDetail(user._id.toString());
+};
+
 // Backs the admin dashboard's "pending invites" view — an Invitation only
 // becomes a User once the code is redeemed via signup, so this is the only
 // place a not-yet-signed-up invite is visible at all.
@@ -403,6 +443,7 @@ const updateOwnProfile = async (
 
 export const OperatorService = {
   inviteOperator,
+  createOperatorByAdmin,
   listInvitationsAdmin,
   validateInvitation,
   operatorSignup,

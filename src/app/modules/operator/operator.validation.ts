@@ -9,6 +9,19 @@ const inviteOperatorZodSchema = z.object({
   }),
 });
 
+const createOperatorByAdminZodSchema = z.object({
+  body: z.object({
+    name: z.string().nonempty({ message: 'Name is required' }),
+    countryCode: z.string().nonempty({ message: 'Country code is required' }),
+    phone: z.string().nonempty({ message: 'Phone number is required' }),
+    password: z
+      .string()
+      .min(8, { message: 'Password must be at least 8 characters' }),
+    city: z.string().nonempty({ message: 'City is required' }),
+    phoneNumbers: z.array(z.string()).optional(),
+  }),
+});
+
 const operatorSignupZodSchema = z.object({
   code: z.string().nonempty({ message: 'Invitation code is required' }),
   name: z.string().nonempty({ message: 'Name is required' }),
@@ -38,6 +51,7 @@ const updateOwnProfileZodSchema = z.object({
 
 export const OperatorValidation = {
   inviteOperatorZodSchema,
+  createOperatorByAdminZodSchema,
   operatorSignupZodSchema,
   suspendOperatorZodSchema,
   updateOwnProfileZodSchema,
