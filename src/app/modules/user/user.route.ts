@@ -59,6 +59,12 @@ router.patch(
   KycController.rejectKyc
 );
 
+router.post(
+  '/admin/create',
+  adminOnly,
+  validateRequest(UserValidation.createCustomerByAdminZodSchema),
+  UserController.createCustomerByAdmin
+);
 router.get('/admin', adminOnly, UserController.listCustomersAdmin);
 router.get('/admin/:id', adminOnly, UserController.getCustomerDetail);
 router.patch(

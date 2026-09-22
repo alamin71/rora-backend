@@ -4,6 +4,7 @@ import sendResponse from '../../../shared/sendResponse';
 import { UserService } from './user.service';
 import { uploadToS3 } from '../../../helpers/s3Helper';
 import AppError from '../../../errors/AppError';
+import normalizePhone from '../../../utils/normalizePhone';
 
 const getUserProfile = catchAsync(async (req, res) => {
   const user = req.user;
@@ -102,6 +103,20 @@ const getCustomerStats = catchAsync(async (req, res) => {
   });
 });
 
+const createCustomerByAdmin = catchAsync(async (req, res) => {
+  const { countryCode, phone, ...rest } = req.body;
+  const result = await UserService.createCustomerByAdmin({
+    ...rest,
+    phone: normalizePhone(countryCode, phone),
+  });
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Customer account created successfully',
+    data: result,
+  });
+});
+
 const listCustomersAdmin = catchAsync(async (req, res) => {
   const result = await UserService.listCustomersAdmin(req.query as never);
   sendResponse(res, {
@@ -160,6 +175,7 @@ export const UserController = {
   updateProfile,
   deleteProfile,
   getCustomerStats,
+  createCustomerByAdmin,
   listCustomersAdmin,
   getCustomerDetail,
   suspendCustomer,

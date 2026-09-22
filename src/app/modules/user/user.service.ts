@@ -98,6 +98,38 @@ const getCustomerStats = async () => {
   };
 };
 
+// Manual account creation for customers who can't/won't complete the OTP
+// app-signup flow themselves (e.g. call-center-assisted onboarding). Admin
+// sets the password directly and communicates it to the customer out of
+// band — verified:true skips OTP entirely, the account works immediately.
+const createCustomerByAdmin = async (payload: {
+  name: string;
+  phone: string;
+  password: string;
+}) => {
+  const existingUser = await User.findOne({ phone: payload.phone });
+  if (existingUser) {
+    throw new AppError(
+      StatusCodes.BAD_REQUEST,
+      'An account with this phone number already exists'
+    );
+  }
+
+  const created = await User.create({
+    name: payload.name,
+    phone: payload.phone,
+    password: payload.password,
+    role: USER_ROLES.USER,
+    status: USER_STATUS.ACTIVE,
+    verified: true,
+  });
+
+  // password has `select: false`, but that only applies to queries — the
+  // just-created in-memory document still carries the (hashed) password,
+  // so a fresh find is the only way to actually exclude it from the response.
+  return User.findById(created._id);
+};
+
 const listCustomersAdmin = async (query: {
   page?: number;
   limit?: number;
@@ -272,6 +304,7 @@ export const UserService = {
   deleteUser,
   verifyUserPassword,
   getCustomerStats,
+  createCustomerByAdmin,
   listCustomersAdmin,
   getCustomerDetail,
   suspendCustomer,
