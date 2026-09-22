@@ -483,19 +483,19 @@ const getOperatorCall = async (operatorId: string, callId: string) => {
   return enrichWithCountryInfo(await attachBillingInfo(call));
 };
 
-// "Today" tab's boundary always starts fresh; "Weekly"/"Monthly" reuse the
-// same Monday-start-week convention as the earnings trend for consistency.
+// "Today" tab's boundary always starts fresh. "Weekly" is a rolling last-7-
+// days window (not calendar-week/Monday-start) so it always shows exactly
+// 7 days of history regardless of what day it is today — unlike the
+// Mon-Sun bucketed earnings trend chart, which does need calendar-week
+// alignment and is unrelated to this.
 const periodStartDate = (period?: string): Date | undefined => {
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
 
   if (period === 'weekly') {
-    const startOfWeek = new Date(startOfToday);
-    const dayIndex = startOfWeek.getDay();
-    startOfWeek.setDate(
-      startOfWeek.getDate() - (dayIndex === 0 ? 6 : dayIndex - 1)
-    );
-    return startOfWeek;
+    const sevenDaysAgo = new Date(startOfToday);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    return sevenDaysAgo;
   }
   if (period === 'monthly') {
     return new Date(startOfToday.getFullYear(), startOfToday.getMonth(), 1);
@@ -504,7 +504,7 @@ const periodStartDate = (period?: string): Date | undefined => {
   return startOfToday;
 };
 
-const getHistory = async (
+const  getHistory = async (
   operatorId: string,
   query: { page?: number; limit?: number; search?: string; period?: string }
 ) => {
