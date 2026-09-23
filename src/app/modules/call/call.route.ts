@@ -26,6 +26,7 @@ router.get('/admin', adminOnly, CallController.listCallsAdmin);
 router.get('/', customerOnly, CallController.listCalls);
 router.get('/:id', customerOnly, CallController.getCall);
 router.patch('/:id/cancel', customerOnly, CallController.cancelCall);
+router.patch('/:id/redial', customerOnly, CallController.redialCall);
 router.post(
   '/:id/rating',
   customerOnly,

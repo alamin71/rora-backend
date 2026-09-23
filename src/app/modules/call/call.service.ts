@@ -95,6 +95,28 @@ const requestCall = async (
   };
 };
 
+// Unlike the operator's redial (same call, reset back to ASSIGNED — the
+// operator just tries dialing again), a customer redial creates a brand new
+// call with a new id/callRef by re-running requestCall against the same
+// destination/number — the old FAILED call stays in history untouched.
+const redialCall = async (customerId: string, callId: string) => {
+  const oldCall = await Call.findOne({ _id: callId, customerId });
+  if (!oldCall) {
+    throw new AppError(StatusCodes.NOT_FOUND, 'Call not found');
+  }
+  if (oldCall.status !== CALL_STATUS.FAILED) {
+    throw new AppError(
+      StatusCodes.BAD_REQUEST,
+      `Only a failed call can be redialed (this call is "${oldCall.status}")`
+    );
+  }
+
+  return requestCall(customerId, {
+    destinationId: oldCall.destinationId.toString(),
+    numberDialed: oldCall.numberDialed,
+  });
+};
+
 const cancelCall = async (customerId: string, callId: string) => {
   const call = await Call.findOne({ _id: callId, customerId });
   if (!call) {
@@ -392,6 +414,7 @@ const exportCallsCsv = async (query: {
 
 export const CallService = {
   requestCall,
+  redialCall,
   cancelCall,
   getCallById,
   listCustomerCalls,

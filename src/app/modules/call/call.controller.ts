@@ -15,6 +15,17 @@ const requestCall = catchAsync(async (req, res) => {
   });
 });
 
+const redialCall = catchAsync(async (req, res) => {
+  const result = await CallService.redialCall(req.user.id, req.params.id);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Call request submitted — searching for an operator',
+    data: result,
+  });
+});
+
 const cancelCall = catchAsync(async (req, res) => {
   const result = await CallService.cancelCall(req.user.id, req.params.id);
 
@@ -110,6 +121,7 @@ const exportCallsCsv = catchAsync(async (req, res) => {
 
 export const CallController = {
   requestCall,
+  redialCall,
   cancelCall,
   getCall,
   listCalls,
