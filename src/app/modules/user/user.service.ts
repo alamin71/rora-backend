@@ -106,6 +106,7 @@ const createCustomerByAdmin = async (payload: {
   name: string;
   phone: string;
   password: string;
+  countryName: string;
 }) => {
   const existingUser = await User.findOne({ phone: payload.phone });
   if (existingUser) {
@@ -119,6 +120,7 @@ const createCustomerByAdmin = async (payload: {
     name: payload.name,
     phone: payload.phone,
     password: payload.password,
+    countryName: payload.countryName,
     role: USER_ROLES.USER,
     status: USER_STATUS.ACTIVE,
     verified: true,

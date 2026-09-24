@@ -12,6 +12,7 @@ const createCustomerByAdminZodSchema = z.object({
   body: z.object({
     name: z.string().nonempty({ message: 'Name is required' }),
     countryCode: z.string().nonempty({ message: 'Country code is required' }),
+    countryName: z.string().nonempty({ message: 'Country name is required' }),
     phone: z.string().nonempty({ message: 'Phone number is required' }),
     password: z
       .string()
