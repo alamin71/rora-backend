@@ -89,6 +89,19 @@ const reportCall = catchAsync(async (req, res) => {
   });
 });
 
+const cancelCallByAdmin = catchAsync(async (req, res) => {
+  const result = await CallService.cancelCallByAdmin(
+    req.params.id,
+    req.user.id
+  );
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Call cancelled by admin',
+    data: result,
+  });
+});
+
 const getCallStatsAdmin = catchAsync(async (req, res) => {
   const result = await CallService.getCallStatsAdmin();
   sendResponse(res, {
@@ -127,6 +140,7 @@ export const CallController = {
   listCalls,
   rateCall,
   reportCall,
+  cancelCallByAdmin,
   getCallStatsAdmin,
   listCallsAdmin,
   exportCallsCsv,

@@ -22,6 +22,11 @@ router.post(
 router.get('/admin/stats', adminOnly, CallController.getCallStatsAdmin);
 router.get('/admin/export', adminOnly, CallController.exportCallsCsv);
 router.get('/admin', adminOnly, CallController.listCallsAdmin);
+router.patch(
+  '/admin/:id/cancel',
+  adminOnly,
+  CallController.cancelCallByAdmin
+);
 
 router.get('/', customerOnly, CallController.listCalls);
 router.get('/:id', customerOnly, CallController.getCall);

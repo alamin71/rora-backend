@@ -29,6 +29,9 @@ const userSchema = new Schema<IUser, UserModel>(
       required: true,
       unique: true,
     },
+    countryName: {
+      type: String,
+    },
     password: {
       type: String,
       required: true,

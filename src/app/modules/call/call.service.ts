@@ -164,6 +164,50 @@ const cancelCall = async (customerId: string, callId: string) => {
   return call;
 };
 
+// Admin override for a call stuck in a live state forever — e.g. the operator's
+// app crashed mid-conference and never called End Call/Mark Failed, leaving the
+// customer permanently blocked by the "one active call at a time" guard in
+// requestCall with no way out on their own.
+const NON_CANCELLABLE_BY_ADMIN = [
+  CALL_STATUS.COMPLETED,
+  CALL_STATUS.FAILED,
+  CALL_STATUS.CANCELLED,
+];
+
+const cancelCallByAdmin = async (callId: string, adminId: string) => {
+  const call = await Call.findById(callId);
+  if (!call) {
+    throw new AppError(StatusCodes.NOT_FOUND, 'Call not found');
+  }
+  if (NON_CANCELLABLE_BY_ADMIN.includes(call.status)) {
+    throw new AppError(
+      StatusCodes.BAD_REQUEST,
+      `Cannot cancel a call that is already ${call.status}`
+    );
+  }
+
+  const statusBeforeCancel = call.status;
+  call.status = CALL_STATUS.CANCELLED;
+  call.endedAt = new Date();
+  await call.save();
+
+  logger.warn(
+    `Call ${call.callRef} (${call._id}) force-CANCELLED by admin ${adminId} (was ${statusBeforeCancel})`
+  );
+
+  if (call.operatorId) {
+    // Free the operator back up — they were locked BUSY to this call.
+    await OperatorProfile.findOneAndUpdate(
+      { userId: call.operatorId },
+      { availabilityStatus: OPERATOR_AVAILABILITY.ONLINE }
+    );
+    socketHelper.emitToUser(call.operatorId.toString(), 'call:update', call);
+  }
+  socketHelper.emitToUser(call.customerId.toString(), 'call:update', call);
+
+  return call;
+};
+
 const getCallById = async (userId: string, callId: string) => {
   const call = await Call.findById(callId).populate(
     'destinationId',
@@ -416,6 +460,7 @@ export const CallService = {
   requestCall,
   redialCall,
   cancelCall,
+  cancelCallByAdmin,
   getCallById,
   listCustomerCalls,
   rateCall,

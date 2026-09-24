@@ -6,6 +6,9 @@ export type IUser = {
   email?: string;
   password: string;
   phone: string;
+  // Customer's country of residence, captured at signup (self-signup only —
+  // operators/admin-created accounts don't collect this).
+  countryName?: string;
   image?: string;
   isDeleted: boolean;
   stripeCustomerId?: string;

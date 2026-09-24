@@ -100,8 +100,9 @@ const signupUserToDB = async (payload: {
   name: string;
   phone: string;
   password: string;
+  countryName: string;
 }) => {
-  const { name, phone, password } = payload;
+  const { name, phone, password, countryName } = payload;
 
   const existing = await User.findOne({ phone });
   if (existing && existing.verified) {
@@ -119,9 +120,12 @@ const signupUserToDB = async (payload: {
 
   if (existing && !existing.verified) {
     // Resend OTP for an unfinished signup instead of creating a duplicate user
-    await User.findOneAndUpdate({ phone }, { $set: { authentication } });
+    await User.findOneAndUpdate(
+      { phone },
+      { $set: { authentication, countryName } }
+    );
   } else {
-    await User.create({ name, phone, password });
+    await User.create({ name, phone, password, countryName });
     await User.findOneAndUpdate({ phone }, { $set: { authentication } });
   }
 
